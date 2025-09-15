@@ -13,9 +13,9 @@ if [ ! -x "$VENV_PY" ]; then
   exit 1
 fi
 
-# 安装依赖
+# 安装 Python 依赖
 $VENV_PY -m pip install --upgrade pip
-$VENV_PY -m pip install fastapi uvicorn python-multipart requests
+$VENV_PY -m pip install fastapi uvicorn python-multipart requests jq
 
 echo "2. 创建日志目录"
 sudo mkdir -p /var/log/image_proxy
@@ -35,7 +35,15 @@ CLEANUP_TIME=$(jq -r '.cleanup.cleanup_time' "$CONFIG_FILE")
 
 echo "[INFO] 域名: $DOMAIN, 端口: $PORT, 清理时间: $CLEANUP_TIME"
 
-echo "4. 配置 systemd 服务"
+echo "4. 检查 Nginx 是否安装"
+if ! command -v nginx >/dev/null 2>&1; then
+  echo "[INFO] Nginx 未安装，正在自动安装..."
+  sudo apt update
+  sudo apt install -y nginx
+fi
+echo "[INFO] Nginx 已安装：$(nginx -v 2>&1)"
+
+echo "5. 配置 systemd 服务"
 
 # FastAPI 主服务
 SERVICE_FILE=/etc/systemd/system/fastapi.service
@@ -86,22 +94,52 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
-echo "5. 重新加载 systemd 并启动服务"
+echo "6. 配置 Nginx 反向代理"
+NGINX_CONF=/etc/nginx/conf.d/fastapi.conf
+sudo tee $NGINX_CONF > /dev/null <<EOF
+server {
+    listen 80;
+    server_name $DOMAIN;
+
+    client_max_body_size 100M;
+
+    location / {
+        proxy_pass http://127.0.0.1:$PORT;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+EOF
+
+sudo nginx -t
+sudo systemctl reload nginx
+
+echo "7. 重新加载 systemd 并启动服务"
 sudo systemctl daemon-reexec
 sudo systemctl daemon-reload
 sudo systemctl enable fastapi.service fastapi-cleanup.timer
 sudo systemctl restart fastapi.service fastapi-cleanup.timer
 
-echo "6. 测试 FastAPI 是否可访问 /docs"
+echo "8. 测试 FastAPI 是否可访问 /docs"
 sleep 5
-STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$PORT/docs || echo "000")
-if [ "$STATUS" -eq 200 ]; then
-  echo "✅ FastAPI /docs 访问成功！安装完成。"
+LOCAL_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$PORT/docs || echo "000")
+DOMAIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://$DOMAIN/docs || echo "000")
+
+if [ "$LOCAL_STATUS" -eq 200 ]; then
+  echo "✅ FastAPI 本地 /docs 访问成功"
 else
-  echo "[WARN] FastAPI /docs 访问失败！HTTP 状态码：$STATUS"
+  echo "❌ 本地访问失败 (状态码 $LOCAL_STATUS)"
+fi
+
+if [ "$DOMAIN_STATUS" -eq 200 ]; then
+  echo "✅ FastAPI 域名 $DOMAIN/docs 访问成功！安装完成。"
+else
+  echo "❌ 域名访问失败 (状态码 $DOMAIN_STATUS)"
   echo "可能原因："
-  echo "  - FastAPI 未正常启动"
-  echo "  - 防火墙或端口未开放 ($PORT)"
-  echo "  - 依赖未安装完整 (fastapi, uvicorn, python-multipart)"
-  echo "请检查日志： sudo journalctl -u fastapi -f"
+  echo "  - Nginx 配置错误或未生效"
+  echo "  - 防火墙未开放 80 端口"
+  echo "  - FastAPI 服务未正常运行"
+  echo "请检查： sudo journalctl -u fastapi -f"
 fi
