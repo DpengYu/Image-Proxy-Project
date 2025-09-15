@@ -95,6 +95,12 @@ WantedBy=timers.target
 EOF
 
 echo "6. 配置 Nginx 反向代理"
+NGINX_CONF_DIR=/etc/nginx/conf.d
+if [ ! -d "$NGINX_CONF_DIR" ]; then
+    echo "[INFO] Nginx conf.d 目录不存在，创建中..."
+    sudo mkdir -p "$NGINX_CONF_DIR"
+fi
+
 NGINX_CONF=/etc/nginx/conf.d/fastapi.conf
 sudo tee $NGINX_CONF > /dev/null <<EOF
 server {
