@@ -3,7 +3,7 @@ set -e
 
 echo "1. 检查并安装依赖"
 
-# 确定 venv 路径
+# 确定项目路径与虚拟环境 Python
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 VENV_PY="$PROJECT_DIR/venv/bin/python"
 
@@ -32,7 +32,6 @@ fi
 DOMAIN=$(jq -r '.server.domain' "$CONFIG_FILE")
 PORT=$(jq -r '.server.port' "$CONFIG_FILE")
 CLEANUP_TIME=$(jq -r '.cleanup.cleanup_time' "$CONFIG_FILE")
-
 echo "[INFO] 域名: $DOMAIN, 端口: $PORT, 清理时间: $CLEANUP_TIME"
 
 echo "4. 检查 Nginx 是否安装"
@@ -94,31 +93,47 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
-echo "6. 配置 Nginx 反向代理"
-NGINX_CONF_DIR=/etc/nginx/conf.d
-if [ ! -d "$NGINX_CONF_DIR" ]; then
-    echo "[INFO] Nginx conf.d 目录不存在，创建中..."
-    sudo mkdir -p "$NGINX_CONF_DIR"
-fi
+echo "6. 配置 Nginx 反向代理 /docs"
 
-NGINX_CONF=/etc/nginx/conf.d/fastapi.conf
-sudo tee $NGINX_CONF > /dev/null <<EOF
+FASTAPI_LOCATION="location /docs {
+    proxy_pass http://127.0.0.1:$PORT/;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+}"
+
+# 尝试查找面板生成的 server 配置
+PANEL_CONF_DIR=/www/server/panel/vhost/nginx
+DOMAIN_CONF="$PANEL_CONF_DIR/$DOMAIN.conf"
+
+if [ -f "$DOMAIN_CONF" ]; then
+    echo "[INFO] 找到面板生成的 Nginx 配置: $DOMAIN_CONF"
+    if grep -q "location /docs" "$DOMAIN_CONF"; then
+        echo "[INFO] FastAPI /docs 反向代理已存在，跳过添加"
+    else
+        echo "[INFO] 在 $DOMAIN_CONF 中添加 FastAPI /docs 反向代理"
+        sudo sed -i "/server_name $DOMAIN;/a $FASTAPI_LOCATION" "$DOMAIN_CONF"
+    fi
+else
+    # 回退方案：创建 conf.d/fastapi.conf
+    NGINX_CONF_DIR=/etc/nginx/conf.d
+    [ ! -d "$NGINX_CONF_DIR" ] && sudo mkdir -p "$NGINX_CONF_DIR"
+    NGINX_CONF="$NGINX_CONF_DIR/fastapi.conf"
+    echo "[INFO] 面板配置未找到，创建 $NGINX_CONF"
+    sudo tee $NGINX_CONF > /dev/null <<EOF
 server {
     listen 80;
     server_name $DOMAIN;
 
     client_max_body_size 100M;
 
-    location / {
-        proxy_pass http://127.0.0.1:$PORT;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
+    $FASTAPI_LOCATION
 }
 EOF
+fi
 
+# 测试并重载 Nginx
 sudo nginx -t
 sudo systemctl reload nginx
 
