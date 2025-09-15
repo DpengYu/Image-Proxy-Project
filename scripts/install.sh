@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "1. 检查并安装依赖"
+echo "1. 检查并安装 Python 依赖"
 
 # 确定 venv 路径
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -13,7 +13,7 @@ if [ ! -x "$VENV_PY" ]; then
   exit 1
 fi
 
-# 安装 Python 依赖
+# 安装依赖
 $VENV_PY -m pip install --upgrade pip
 $VENV_PY -m pip install fastapi uvicorn python-multipart requests jq
 
@@ -96,20 +96,30 @@ EOF
 
 echo "6. 配置 Nginx 反向代理 /docs"
 
-# 查找宝塔面板生成的 server 配置
-PANEL_CONF=$(sudo nginx -T 2>/dev/null | grep -A5 "server_name $DOMAIN" | grep -oP '/www/server/panel/vhost/nginx/\S+\.conf' | head -n1)
+# 自动检测宝塔面板 server 配置
+BT_CONF_DIR="/www/server/panel/vhost/nginx"
+SERVER_CONF_FILE="$BT_CONF_DIR/${DOMAIN}.conf"
 
-if [ -f "$PANEL_CONF" ]; then
-    echo "[INFO] 检测到面板配置：$PANEL_CONF"
+if [ -f "$SERVER_CONF_FILE" ]; then
+    echo "[INFO] 宝塔 server 配置文件检测到: $SERVER_CONF_FILE"
 
-    if sudo grep -q "location /docs" "$PANEL_CONF"; then
-        echo "[INFO] /docs 已存在，保留原配置，仅更新 proxy_pass"
-        sudo sed -i -E "/location \/docs {/,/}/{
-            s|proxy_pass http://[^;]+;|proxy_pass http://127.0.0.1:$PORT/;|g
-        }" "$PANEL_CONF"
+    # 检查是否已存在 /docs location
+    if grep -q "location /docs" "$SERVER_CONF_FILE"; then
+        echo "[INFO] /docs location 已存在，更新 proxy_pass 地址"
+        sudo sed -i "/location \/docs/,/}/{
+            s#proxy_pass .*;#proxy_pass http://127.0.0.1:$PORT;#
+        }" "$SERVER_CONF_FILE"
     else
-        echo "[INFO] 添加 /docs 反向代理"
-        sudo sed -i "/server_name $DOMAIN;/a \\\n    location /docs {\n        proxy_pass http://127.0.0.1:$PORT/;\n        proxy_set_header Host \$host;\n        proxy_set_header X-Real-IP \$remote_addr;\n        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto \$scheme;\n    }" "$PANEL_CONF"
+        echo "[INFO] /docs location 不存在，添加新 location"
+        # 在 server { ... } 内最后添加
+        sudo sed -i "/server_name $DOMAIN;/a\\
+    location /docs {\\
+        proxy_pass http://127.0.0.1:$PORT;\\
+        proxy_set_header Host \$host;\\
+        proxy_set_header X-Real-IP \$remote_addr;\\
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;\\
+        proxy_set_header X-Forwarded-Proto \$scheme;\\
+    }" "$SERVER_CONF_FILE"
     fi
 else
     echo "[INFO] 面板配置未找到，创建 /etc/nginx/conf.d/fastapi.conf"
@@ -122,7 +132,7 @@ server {
     client_max_body_size 100M;
 
     location /docs {
-        proxy_pass http://127.0.0.1:$PORT/;
+        proxy_pass http://127.0.0.1:$PORT;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;

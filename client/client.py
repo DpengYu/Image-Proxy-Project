@@ -99,7 +99,7 @@ def upload_or_get(file_path):
 # 主函数
 # -------------------------------
 if __name__ == "__main__":
-    test_file = r"test.png"
+    test_file = r"example.png"
     print(f"[INFO] Starting upload_or_get for: {test_file}")
     try:
         url = upload_or_get(test_file)
