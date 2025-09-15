@@ -1,74 +1,80 @@
 #!/bin/bash
+set -e
 
-APP_DIR="$(cd $(dirname $0)/.. && pwd)"
-PYTHON=$(which python3)
+echo "1. 检查并安装依赖"
 
-# 优先使用 venv
-if [ -f "$APP_DIR/venv/bin/activate" ]; then
-    echo "Activating virtual environment..."
-    source "$APP_DIR/venv/bin/activate"
-    PYTHON="$APP_DIR/venv/bin/python"
+# 确定 venv 路径
+PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+VENV_PY="$PROJECT_DIR/venv/bin/python"
+
+if [ ! -x "$VENV_PY" ]; then
+  echo "[ERROR] 没有找到虚拟环境 Python: $VENV_PY"
+  echo "请先运行: python3 -m venv $PROJECT_DIR/venv && source $PROJECT_DIR/venv/bin/activate && pip install -r requirements.txt"
+  exit 1
 fi
 
-CONFIG_FILE="$APP_DIR/config/config.json"
-if [ ! -f $CONFIG_FILE ]; then
-    echo "请先创建 config.json 文件！"
-    exit 1
-fi
-
-echo "1. 安装依赖"
-$PYTHON -m pip install --upgrade pip
-$PYTHON -m pip install fastapi uvicorn requests python-multipart jq
+# 安装依赖
+$VENV_PY -m pip install --upgrade pip
+$VENV_PY -m pip install fastapi uvicorn python-multipart requests
 
 echo "2. 创建日志目录"
-mkdir -p /var/log/image_proxy
-LOG_FILE="/var/log/image_proxy/fastapi.log"
-touch $LOG_FILE
+sudo mkdir -p /var/log/image_proxy
+sudo touch /var/log/image_proxy/fastapi.log
+sudo chown "$USER":"$USER" /var/log/image_proxy/fastapi.log
 
 echo "3. 读取配置"
-DOMAIN=$(jq -r '.server.domain' $CONFIG_FILE)
-PORT=$(jq -r '.server.port' $CONFIG_FILE)
-CLEANUP_ENABLE=$(jq -r '.cleanup.enable' $CONFIG_FILE)
-CLEANUP_TIME=$(jq -r '.cleanup.cleanup_time' $CONFIG_FILE)
+CONFIG_FILE="$PROJECT_DIR/config/config.json"
+if [ ! -f "$CONFIG_FILE" ]; then
+  echo "[ERROR] 找不到配置文件 $CONFIG_FILE"
+  exit 1
+fi
+
+DOMAIN=$(jq -r '.server.domain' "$CONFIG_FILE")
+PORT=$(jq -r '.server.port' "$CONFIG_FILE")
+CLEANUP_TIME=$(jq -r '.cleanup.cleanup_time' "$CONFIG_FILE")
+
+echo "[INFO] 域名: $DOMAIN, 端口: $PORT, 清理时间: $CLEANUP_TIME"
 
 echo "4. 配置 systemd 服务"
-SERVICE_FILE="/etc/systemd/system/fastapi.service"
-TIMER_FILE="/etc/systemd/system/fastapi-cleanup.timer"
-CLEANUP_SERVICE="/etc/systemd/system/fastapi-cleanup.service"
 
-cat <<EOF | sudo tee $SERVICE_FILE
+# FastAPI 主服务
+SERVICE_FILE=/etc/systemd/system/fastapi.service
+sudo tee $SERVICE_FILE > /dev/null <<EOF
 [Unit]
 Description=FastAPI + Uvicorn Service
 After=network.target
 
 [Service]
-WorkingDirectory=$APP_DIR/server
-ExecStart=$PYTHON -m uvicorn server:app --host 0.0.0.0 --port $PORT
+WorkingDirectory=$PROJECT_DIR/server
+ExecStart=$VENV_PY -m uvicorn server:app --host 0.0.0.0 --port $PORT
 Restart=always
 RestartSec=5
-User=$(whoami)
-Group=$(whoami)
-StandardOutput=append:$LOG_FILE
-StandardError=append:$LOG_FILE
+User=$USER
+Group=$USER
+StandardOutput=append:/var/log/image_proxy/fastapi.log
+StandardError=append:/var/log/image_proxy/fastapi.log
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-if [ "$CLEANUP_ENABLE" = "true" ]; then
-    cat <<EOF | sudo tee $CLEANUP_SERVICE
+# 清理任务服务
+CLEANUP_SERVICE=/etc/systemd/system/fastapi-cleanup.service
+sudo tee $CLEANUP_SERVICE > /dev/null <<EOF
 [Unit]
 Description=FastAPI Cleanup Service
 After=fastapi.service
 
 [Service]
-WorkingDirectory=$APP_DIR/server
-ExecStart=$PYTHON cleanup.py
-User=$(whoami)
-Group=$(whoami)
+WorkingDirectory=$PROJECT_DIR/server
+ExecStart=$VENV_PY cleanup.py
+User=$USER
+Group=$USER
 EOF
 
-    cat <<EOF | sudo tee $TIMER_FILE
+# 定时任务
+CLEANUP_TIMER=/etc/systemd/system/fastapi-cleanup.timer
+sudo tee $CLEANUP_TIMER > /dev/null <<EOF
 [Unit]
 Description=Run FastAPI Cleanup Daily
 
@@ -79,46 +85,23 @@ Persistent=true
 [Install]
 WantedBy=timers.target
 EOF
-fi
 
 echo "5. 重新加载 systemd 并启动服务"
+sudo systemctl daemon-reexec
 sudo systemctl daemon-reload
-sudo systemctl enable fastapi
-sudo systemctl start fastapi
-
-# 检查 fastapi 服务是否成功启动
-if ! systemctl is-active --quiet fastapi; then
-    echo "[ERROR] fastapi.service 启动失败！打印最近 50 条日志："
-    sudo journalctl -u fastapi -n 50 --no-pager
-    exit 1
-fi
-
-if [ "$CLEANUP_ENABLE" = "true" ]; then
-    sudo systemctl enable fastapi-cleanup.timer
-    sudo systemctl start fastapi-cleanup.timer
-
-    # 检查定时器状态
-    if ! systemctl is-active --quiet fastapi-cleanup.timer; then
-        echo "[WARN] fastapi-cleanup.timer 启动失败！请检查配置时间：$CLEANUP_TIME"
-        sudo systemctl status fastapi-cleanup.timer
-    fi
-fi
+sudo systemctl enable fastapi.service fastapi-cleanup.timer
+sudo systemctl restart fastapi.service fastapi-cleanup.timer
 
 echo "6. 测试 FastAPI 是否可访问 /docs"
-if command -v curl >/dev/null 2>&1; then
-    HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}\n" http://$DOMAIN:$PORT/docs || echo "000")
-    if [ "$HTTP_STATUS" -eq 200 ]; then
-        echo "✅ FastAPI /docs 可访问： http://$DOMAIN:$PORT/docs"
-    else
-        echo "[WARN] FastAPI /docs 访问失败！HTTP 状态码：$HTTP_STATUS"
-        echo "可能原因："
-        echo "  - FastAPI 未正常启动"
-        echo "  - 防火墙或端口未开放"
-        echo "  - 依赖未安装完整 (fastapi, uvicorn, python-multipart)"
-        echo "请检查日志： sudo journalctl -u fastapi -f"
-    fi
+sleep 5
+STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$PORT/docs || echo "000")
+if [ "$STATUS" -eq 200 ]; then
+  echo "✅ FastAPI /docs 访问成功！安装完成。"
 else
-    echo "[INFO] curl 未安装，无法自动测试 /docs，请手动访问 http://$DOMAIN:$PORT/docs"
+  echo "[WARN] FastAPI /docs 访问失败！HTTP 状态码：$STATUS"
+  echo "可能原因："
+  echo "  - FastAPI 未正常启动"
+  echo "  - 防火墙或端口未开放 ($PORT)"
+  echo "  - 依赖未安装完整 (fastapi, uvicorn, python-multipart)"
+  echo "请检查日志： sudo journalctl -u fastapi -f"
 fi
-
-echo "✅ 安装完成！FastAPI 已启动，清理任务已配置。"
