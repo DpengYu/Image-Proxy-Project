@@ -1,9 +1,8 @@
 #!/bin/bash
 set -e
 
-echo "1. 检查并安装 Python 依赖"
+echo "1. 检查并安装依赖"
 
-# 确定 venv 路径
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 VENV_PY="$PROJECT_DIR/venv/bin/python"
 
@@ -13,7 +12,6 @@ if [ ! -x "$VENV_PY" ]; then
   exit 1
 fi
 
-# 安装依赖
 $VENV_PY -m pip install --upgrade pip
 $VENV_PY -m pip install fastapi uvicorn python-multipart requests jq
 
@@ -45,7 +43,6 @@ echo "[INFO] Nginx 已安装：$(nginx -v 2>&1)"
 
 echo "5. 配置 systemd 服务"
 
-# FastAPI 主服务
 SERVICE_FILE=/etc/systemd/system/fastapi.service
 sudo tee $SERVICE_FILE > /dev/null <<EOF
 [Unit]
@@ -66,7 +63,6 @@ StandardError=append:/var/log/image_proxy/fastapi.log
 WantedBy=multi-user.target
 EOF
 
-# 清理任务服务
 CLEANUP_SERVICE=/etc/systemd/system/fastapi-cleanup.service
 sudo tee $CLEANUP_SERVICE > /dev/null <<EOF
 [Unit]
@@ -80,7 +76,6 @@ User=$USER
 Group=$USER
 EOF
 
-# 定时任务
 CLEANUP_TIMER=/etc/systemd/system/fastapi-cleanup.timer
 sudo tee $CLEANUP_TIMER > /dev/null <<EOF
 [Unit]
@@ -96,40 +91,16 @@ EOF
 
 echo "6. 配置 Nginx 反向代理 /docs"
 
-# 自动检测宝塔面板 server 配置
-BT_CONF_DIR="/www/server/panel/vhost/nginx"
-SERVER_CONF_FILE="$BT_CONF_DIR/${DOMAIN}.conf"
+# 宝塔面板 server 配置文件路径
+BT_CONF="/www/server/panel/vhost/nginx/$DOMAIN.conf"
 
-if [ -f "$SERVER_CONF_FILE" ]; then
-    echo "[INFO] 宝塔 server 配置文件检测到: $SERVER_CONF_FILE"
-
-    # 检查是否已存在 /docs location
-    if grep -q "location /docs" "$SERVER_CONF_FILE"; then
-        echo "[INFO] /docs location 已存在，更新 proxy_pass 地址"
-        sudo sed -i "/location \/docs/,/}/{
-            s#proxy_pass .*;#proxy_pass http://127.0.0.1:$PORT;#
-        }" "$SERVER_CONF_FILE"
-    else
-        echo "[INFO] /docs location 不存在，添加新 location"
-        # 在 server { ... } 内最后添加
-        sudo sed -i "/server_name $DOMAIN;/a\\
-    location /docs {\\
-        proxy_pass http://127.0.0.1:$PORT;\\
-        proxy_set_header Host \$host;\\
-        proxy_set_header X-Real-IP \$remote_addr;\\
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;\\
-        proxy_set_header X-Forwarded-Proto \$scheme;\\
-    }" "$SERVER_CONF_FILE"
-    fi
-else
+if [ ! -f "$BT_CONF" ]; then
     echo "[INFO] 面板配置未找到，创建 /etc/nginx/conf.d/fastapi.conf"
-    NGINX_CONF=/etc/nginx/conf.d/fastapi.conf
+    NGINX_CONF="/etc/nginx/conf.d/fastapi.conf"
     sudo tee $NGINX_CONF > /dev/null <<EOF
 server {
     listen 80;
     server_name $DOMAIN;
-
-    client_max_body_size 100M;
 
     location /docs {
         proxy_pass http://127.0.0.1:$PORT;
@@ -140,9 +111,27 @@ server {
     }
 }
 EOF
+else
+    echo "[INFO] 检测到宝塔面板 server 配置: $BT_CONF"
+    # 检查是否已有 /docs
+    if sudo grep -q "location /docs" "$BT_CONF"; then
+        echo "[INFO] /docs location 已存在，更新 proxy_pass"
+        # 保留其他配置，只替换 proxy_pass
+        sudo sed -i "/location \/docs/,/}/ s#proxy_pass .*;#proxy_pass http://127.0.0.1:$PORT;#" "$BT_CONF"
+    else
+        echo "[INFO] /docs location 不存在，插入新的 location /docs"
+        # 在 server 最后插入
+        sudo sed -i "/server_name $DOMAIN;/a \\
+    location /docs { \\
+        proxy_pass http://127.0.0.1:$PORT; \\
+        proxy_set_header Host \$host; \\
+        proxy_set_header X-Real-IP \$remote_addr; \\
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for; \\
+        proxy_set_header X-Forwarded-Proto \$scheme; \\
+    }" "$BT_CONF"
+    fi
 fi
 
-# 测试 Nginx 配置并重载
 sudo nginx -t
 sudo systemctl reload nginx
 
