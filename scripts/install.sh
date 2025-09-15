@@ -3,7 +3,7 @@ set -e
 
 echo "1. 检查并安装依赖"
 
-# 确定项目路径与虚拟环境 Python
+# 确定 venv 路径
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 VENV_PY="$PROJECT_DIR/venv/bin/python"
 
@@ -32,6 +32,7 @@ fi
 DOMAIN=$(jq -r '.server.domain' "$CONFIG_FILE")
 PORT=$(jq -r '.server.port' "$CONFIG_FILE")
 CLEANUP_TIME=$(jq -r '.cleanup.cleanup_time' "$CONFIG_FILE")
+
 echo "[INFO] 域名: $DOMAIN, 端口: $PORT, 清理时间: $CLEANUP_TIME"
 
 echo "4. 检查 Nginx 是否安装"
@@ -95,32 +96,24 @@ EOF
 
 echo "6. 配置 Nginx 反向代理 /docs"
 
-FASTAPI_LOCATION="location /docs {
-    proxy_pass http://127.0.0.1:$PORT/;
-    proxy_set_header Host \$host;
-    proxy_set_header X-Real-IP \$remote_addr;
-    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto \$scheme;
-}"
+# 查找宝塔面板生成的 server 配置
+PANEL_CONF=$(sudo nginx -T 2>/dev/null | grep -A5 "server_name $DOMAIN" | grep -oP '/www/server/panel/vhost/nginx/\S+\.conf' | head -n1)
 
-# 尝试查找面板生成的 server 配置
-PANEL_CONF_DIR=/www/server/panel/vhost/nginx
-DOMAIN_CONF="$PANEL_CONF_DIR/$DOMAIN.conf"
+if [ -f "$PANEL_CONF" ]; then
+    echo "[INFO] 检测到面板配置：$PANEL_CONF"
 
-if [ -f "$DOMAIN_CONF" ]; then
-    echo "[INFO] 找到面板生成的 Nginx 配置: $DOMAIN_CONF"
-    if grep -q "location /docs" "$DOMAIN_CONF"; then
-        echo "[INFO] FastAPI /docs 反向代理已存在，跳过添加"
+    if sudo grep -q "location /docs" "$PANEL_CONF"; then
+        echo "[INFO] /docs 已存在，保留原配置，仅更新 proxy_pass"
+        sudo sed -i -E "/location \/docs {/,/}/{
+            s|proxy_pass http://[^;]+;|proxy_pass http://127.0.0.1:$PORT/;|g
+        }" "$PANEL_CONF"
     else
-        echo "[INFO] 在 $DOMAIN_CONF 中添加 FastAPI /docs 反向代理"
-        sudo sed -i "/server_name $DOMAIN;/a $FASTAPI_LOCATION" "$DOMAIN_CONF"
+        echo "[INFO] 添加 /docs 反向代理"
+        sudo sed -i "/server_name $DOMAIN;/a \\\n    location /docs {\n        proxy_pass http://127.0.0.1:$PORT/;\n        proxy_set_header Host \$host;\n        proxy_set_header X-Real-IP \$remote_addr;\n        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto \$scheme;\n    }" "$PANEL_CONF"
     fi
 else
-    # 回退方案：创建 conf.d/fastapi.conf
-    NGINX_CONF_DIR=/etc/nginx/conf.d
-    [ ! -d "$NGINX_CONF_DIR" ] && sudo mkdir -p "$NGINX_CONF_DIR"
-    NGINX_CONF="$NGINX_CONF_DIR/fastapi.conf"
-    echo "[INFO] 面板配置未找到，创建 $NGINX_CONF"
+    echo "[INFO] 面板配置未找到，创建 /etc/nginx/conf.d/fastapi.conf"
+    NGINX_CONF=/etc/nginx/conf.d/fastapi.conf
     sudo tee $NGINX_CONF > /dev/null <<EOF
 server {
     listen 80;
@@ -128,12 +121,18 @@ server {
 
     client_max_body_size 100M;
 
-    $FASTAPI_LOCATION
+    location /docs {
+        proxy_pass http://127.0.0.1:$PORT/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
 }
 EOF
 fi
 
-# 测试并重载 Nginx
+# 测试 Nginx 配置并重载
 sudo nginx -t
 sudo systemctl reload nginx
 
