@@ -1,7 +1,7 @@
 {
   "server": {
-    "domain": "http://www.fishydp.online",
-    "port": 9575
+    "domain": "yourdomain",
+    "port": 8000
   },
   "cleanup": {
     "enable": true,
