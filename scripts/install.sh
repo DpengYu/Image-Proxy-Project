@@ -99,7 +99,7 @@ EOF
 echo "5. 配置 Nginx 反向代理 /docs /upload /get"
 BT_CONF="/www/server/panel/vhost/nginx/${DOMAIN}.conf"
 NGINX_CONF="/etc/nginx/conf.d/fastapi.conf"
-LOCS=( "/docs" "/upload" "/get" )
+LOCS=( "/docs" "/upload" "/get" "/download_db" )
 
 PY_MODIFY_SCRIPT=$(cat <<'PYCODE'
 import sys, re

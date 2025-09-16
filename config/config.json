@@ -1,11 +1,17 @@
 {
   "server": {
-    "domain": "http://www.fishydp.online", 
+    "domain": "http://www.fishydp.online",
     "port": 9575
   },
   "cleanup": {
-    "enable": true,                     
-    "expire_days": 30,                  
-    "cleanup_time": "03:00:00"          
-  }
+    "enable": true,
+    "expire_days": 30,
+    "cleanup_time": "03:00:00"
+  },
+  "users": [
+    {
+      "username": "alice",
+      "password": "alice123"
+    }
+  ]
 }
