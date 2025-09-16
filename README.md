@@ -92,10 +92,8 @@ image_proxy_project/
 │  └─ uninstall.sh          # 服务器一键卸载脚本
 └─ README.md
 ```
-```
 
 ---
-
 ## 配置文件说明
 
 路径：`config/config.json`
