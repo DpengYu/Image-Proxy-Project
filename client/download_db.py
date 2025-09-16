@@ -28,21 +28,30 @@ OUTPUT_FILE = "images_server.db"
 # -------------------------------
 # 下载数据库函数
 # -------------------------------
-def download_server_db():
+def download_server_db(output_file=OUTPUT_FILE):
     url = f"{SERVER}/download_db"
     params = {"username": USERNAME, "password": PASSWORD}
 
     try:
         print(f"[INFO] 正在下载服务器数据库...")
         r = requests.get(url, params=params, stream=True)
+
+        if r.status_code == 403:
+            print("[ERROR] 该用户权限不足，请联系管理员")
+            return False
         r.raise_for_status()
-        with open(OUTPUT_FILE, "wb") as f:
+
+        with open(output_file, "wb") as f:
             for chunk in r.iter_content(chunk_size=8192):
                 if chunk:
                     f.write(chunk)
-        print(f"[INFO] 已成功下载服务器数据库到 {OUTPUT_FILE}")
+
+        print(f"[INFO] 已成功下载服务器数据库到 {output_file}")
+        return True
+
     except requests.RequestException as e:
         print(f"[ERROR] 下载失败: {e}")
+        return False
 
 # -------------------------------
 # 主程序

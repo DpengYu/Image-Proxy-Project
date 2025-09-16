@@ -6,7 +6,7 @@ DB_FILE="$APP_DIR/server/images.db"
 UPLOAD_DIR="$APP_DIR/server/uploads"
 SERVICE_NAME="fastapi"
 
-echo "==> Reset FastAPI database and uploads"
+echo "==> Reset Image Proxy Project database and uploads"
 
 # 1. 停止 FastAPI 服务
 if systemctl is-active --quiet "$SERVICE_NAME"; then
