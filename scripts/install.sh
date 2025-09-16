@@ -90,10 +90,29 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
-echo "6. 配置 Nginx 反向代理 /docs"
+echo "6. 配置 Nginx 反向代理 /docs /upload /get"
 
 DOCS_LOCATION=$(cat <<EOF
     location /docs {
+        proxy_pass http://127.0.0.1:$PORT;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+EOF
+)
+
+API_LOCATIONS=$(cat <<EOF
+    location /upload {
+        proxy_pass http://127.0.0.1:$PORT;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    location /get {
         proxy_pass http://127.0.0.1:$PORT;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
@@ -109,13 +128,19 @@ NGINX_CONF="/etc/nginx/conf.d/fastapi.conf"
 
 if [ -f "$BT_CONF" ]; then
     echo "[INFO] 检测到宝塔面板 server 配置: $BT_CONF"
-    if sudo grep -q "location /docs" "$BT_CONF"; then
-        echo "[INFO] /docs location 已存在，更新 proxy_pass"
-        sudo sed -i "/location \/docs/,/}/ s#proxy_pass .*;#proxy_pass http://127.0.0.1:$PORT;#" "$BT_CONF"
-    else
-        echo "[INFO] /docs location 不存在，插入新的 location /docs"
-        sudo sed -i "/server_name $DOMAIN;/a \\$DOCS_LOCATION" "$BT_CONF"
-    fi
+
+    for loc in "/docs" "/upload" "/get"; do
+        if sudo grep -q "location $loc" "$BT_CONF"; then
+            echo "[INFO] $loc location 已存在，更新 proxy_pass"
+            sudo sed -i "/location $loc/,/}/ s#proxy_pass .*;#proxy_pass http://127.0.0.1:$PORT;#" "$BT_CONF"
+        else
+            echo "[INFO] $loc location 不存在，插入新的 location $loc"
+            case $loc in
+                "/docs") sudo sed -i "/server_name $DOMAIN;/a \\$DOCS_LOCATION" "$BT_CONF" ;;
+                "/upload"|"/get") sudo sed -i "/server_name $DOMAIN;/a \\$API_LOCATIONS" "$BT_CONF" ;;
+            esac
+        fi
+    done
 else
     echo "[INFO] 未检测到宝塔配置，创建独立 Nginx 配置 $NGINX_CONF"
     sudo tee $NGINX_CONF > /dev/null <<EOF
@@ -124,6 +149,7 @@ server {
     server_name $DOMAIN;
 
 $DOCS_LOCATION
+$API_LOCATIONS
 }
 EOF
 fi
@@ -139,10 +165,10 @@ if [ ! -f "$SSL_CERT" ] || [ ! -f "$SSL_KEY" ]; then
     sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
         -keyout "$SSL_KEY" \
         -out "$SSL_CERT" \
-        -subj "/C=CN/ST=Shanghai/L=Shanghai/O=FastAPI/CN=$DOMAIN"
+        -subj "/CN=$DOMAIN"
 fi
 
-# 创建 HTTPS server 块（仅独立 Nginx 配置）
+# 创建 HTTPS server 块（仅独立 Nginx 配置时添加）
 if [ -f "$NGINX_CONF" ]; then
     sudo tee -a $NGINX_CONF > /dev/null <<EOF
 server {
@@ -153,6 +179,7 @@ server {
     ssl_certificate_key $SSL_KEY;
 
 $DOCS_LOCATION
+$API_LOCATIONS
 }
 EOF
 fi
