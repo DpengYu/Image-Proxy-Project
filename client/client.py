@@ -5,6 +5,7 @@ import requests
 import os
 import json
 from pathlib import Path
+from PIL import Image
 
 # -------------------------------
 # 配置
@@ -14,14 +15,14 @@ print(f"[DEBUG] Loading config from {CONFIG_FILE}")
 with open(CONFIG_FILE) as f:
     config = json.load(f)
 
-SERVER = f"{config['server']['domain']}:{config['server']['port']}"
+SERVER = f"{config['server']['domain']}"
 print(f"[DEBUG] Server URL: {SERVER}")
 
 CACHE_DB = "cache.db"
-os.makedirs("cache", exist_ok=True)  # 可选缓存目录
+os.makedirs("cache", exist_ok=True)
 
 # -------------------------------
-# 客户端 SQLite 缓存初始化
+# SQLite 缓存初始化
 # -------------------------------
 def init_cache():
     conn = sqlite3.connect(CACHE_DB, check_same_thread=False)
@@ -30,7 +31,11 @@ def init_cache():
         CREATE TABLE IF NOT EXISTS images (
             md5 TEXT PRIMARY KEY,
             url TEXT,
-            created_at INTEGER
+            original_name TEXT,
+            width INTEGER,
+            height INTEGER,
+            created_at INTEGER,
+            access_count INTEGER DEFAULT 0
         )
     """)
     conn.commit()
@@ -40,7 +45,7 @@ def init_cache():
 init_cache()
 
 # -------------------------------
-# 计算文件 MD5
+# 计算 MD5
 # -------------------------------
 def get_md5(file_path):
     file_path = Path(file_path)
@@ -56,20 +61,22 @@ def get_md5(file_path):
     return md5
 
 # -------------------------------
-# 上传或获取已缓存的 URL
+# 上传或获取缓存 URL
 # -------------------------------
 def upload_or_get(file_path):
     md5 = get_md5(file_path)
     now = int(time.time())
 
-    # 检查缓存
+    # 读取缓存
     conn = sqlite3.connect(CACHE_DB, check_same_thread=False)
     c = conn.cursor()
-    c.execute("SELECT url, created_at FROM images WHERE md5=?", (md5,))
+    c.execute("SELECT url, created_at, access_count FROM images WHERE md5=?", (md5,))
     row = c.fetchone()
     if row:
-        url, created_at = row
-        print(f"[DEBUG] Found cached URL: {url}")
+        url, created_at, access_count = row
+        print(f"[DEBUG] Found cached URL: {url}, previous access_count={access_count}")
+        c.execute("UPDATE images SET access_count=? WHERE md5=?", (access_count+1, md5))
+        conn.commit()
         conn.close()
         return url
 
@@ -80,13 +87,18 @@ def upload_or_get(file_path):
         r.raise_for_status()
         data = r.json()
         url = data.get("url")
-        print(f"[DEBUG] Uploaded successfully, URL: {url}")
+        original_name = data.get("original_name")
+        width = data.get("width")
+        height = data.get("height")
+
+        print(f"[DEBUG] Uploaded successfully, URL: {url}, size: {width}x{height}, name: {original_name}")
 
         # 缓存
-        c.execute(
-            "INSERT OR REPLACE INTO images (md5, url, created_at) VALUES (?, ?, ?)",
-            (md5, url, now)
-        )
+        c.execute("""
+            INSERT OR REPLACE INTO images
+            (md5, url, original_name, width, height, created_at, access_count)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (md5, url, original_name, width, height, now, 1))
         conn.commit()
         conn.close()
         return url
