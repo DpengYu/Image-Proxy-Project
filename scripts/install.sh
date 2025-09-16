@@ -27,7 +27,8 @@ if [ ! -f "$CONFIG_FILE" ]; then
   exit 1
 fi
 
-DOMAIN=$(jq -r '.server.domain' "$CONFIG_FILE")
+# 清洗域名，去掉 http:// 或 /
+DOMAIN=$(jq -r '.server.domain' "$CONFIG_FILE" | sed 's~https\?://~~' | sed 's~/~~g')
 PORT=$(jq -r '.server.port' "$CONFIG_FILE")
 CLEANUP_TIME=$(jq -r '.cleanup.cleanup_time' "$CONFIG_FILE")
 
@@ -141,7 +142,7 @@ if [ ! -f "$SSL_CERT" ] || [ ! -f "$SSL_KEY" ]; then
         -subj "/C=CN/ST=Shanghai/L=Shanghai/O=FastAPI/CN=$DOMAIN"
 fi
 
-# 创建 HTTPS server 块
+# 创建 HTTPS server 块（仅独立 Nginx 配置）
 if [ -f "$NGINX_CONF" ]; then
     sudo tee -a $NGINX_CONF > /dev/null <<EOF
 server {
