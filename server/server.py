@@ -22,7 +22,7 @@ UPLOAD_DIR = "uploads"
 DB_FILE = "images.db"
 EXPIRE_DAYS = config["cleanup"]["expire_days"]
 USERS = {u['username']: u['password'] for u in config.get("users", [])}
-SECRET_KEY = b"SuperSecretKey123"  # HMAC密钥，用于生成 token
+SECRET_KEY = b"SuperSecretKey123"  # HMAC密钥
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 app = FastAPI()
@@ -196,7 +196,8 @@ async def get_image_info(md5: str, username: str = Query(...), password: str = Q
         "name": name,
         "width": width,
         "height": height,
-        "access_count": access_count
+        "access_count": access_count,
+        "status": "existing"
     }
 
 # -------------------------------

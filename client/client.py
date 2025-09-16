@@ -45,9 +45,7 @@ def upload_or_get(file_path):
     try:
         r = requests.get(f"{SERVER}/info/{md5}", params=params)
         if r.status_code == 200:
-            data = r.json()
-            data['status'] = 'existing'
-            return data
+            return r.json()
         elif r.status_code != 404:
             r.raise_for_status()
     except requests.RequestException as e:
@@ -57,10 +55,7 @@ def upload_or_get(file_path):
     with open(file_path, "rb") as f:
         r = requests.post(f"{SERVER}/upload", files={"file": f}, params=params)
         r.raise_for_status()
-
-    data = r.json()
-    data['status'] = 'uploaded'
-    return data
+    return r.json()
 
 # -------------------------------
 # 测试

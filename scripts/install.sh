@@ -96,10 +96,10 @@ WantedBy=timers.target
 EOF
 
 # 6. Nginx 配置（宝塔或独立）
-echo "5. 配置 Nginx 反向代理 /docs /upload /get"
+echo "5. 配置 Nginx 反向代理 /docs /upload /get /secure_get"
 BT_CONF="/www/server/panel/vhost/nginx/${DOMAIN}.conf"
 NGINX_CONF="/etc/nginx/conf.d/fastapi.conf"
-LOCS=( "/docs" "/upload" "/get" "/download_db" )
+LOCS=( "/docs" "/upload" "/get" ”/secure_get“ "/download_db" )
 
 PY_MODIFY_SCRIPT=$(cat <<'PYCODE'
 import sys, re

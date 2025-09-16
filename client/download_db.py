@@ -16,7 +16,6 @@ SERVER = config.get("server", {}).get("domain", "").rstrip("/")
 if not SERVER:
     raise ValueError("config.json 中未配置 server.domain")
 
-# 使用第一个用户
 USER_INFO = config.get("users", [{}])[0]
 USERNAME = USER_INFO.get("username")
 PASSWORD = USER_INFO.get("password")
