@@ -37,7 +37,7 @@ echo "4. 检查 Nginx 是否安装"
 if ! command -v nginx >/dev/null 2>&1; then
   echo "[INFO] Nginx 未安装，正在自动安装..."
   sudo apt update
-  sudo apt install -y nginx
+  sudo apt install -y nginx openssl
 fi
 echo "[INFO] Nginx 已安装：$(nginx -v 2>&1)"
 
@@ -91,17 +91,7 @@ EOF
 
 echo "6. 配置 Nginx 反向代理 /docs"
 
-# 宝塔面板 server 配置文件路径
-BT_CONF="/www/server/panel/vhost/nginx/$DOMAIN.conf"
-
-if [ ! -f "$BT_CONF" ]; then
-    echo "[INFO] 面板配置未找到，创建 /etc/nginx/conf.d/fastapi.conf"
-    NGINX_CONF="/etc/nginx/conf.d/fastapi.conf"
-    sudo tee $NGINX_CONF > /dev/null <<EOF
-server {
-    listen 80;
-    server_name $DOMAIN;
-
+DOCS_LOCATION=$(cat <<EOF
     location /docs {
         proxy_pass http://127.0.0.1:$PORT;
         proxy_set_header Host \$host;
@@ -109,27 +99,61 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
-}
 EOF
-else
+)
+
+# 宝塔面板目录
+BT_CONF="/www/server/panel/vhost/nginx/$DOMAIN.conf"
+NGINX_CONF="/etc/nginx/conf.d/fastapi.conf"
+
+if [ -f "$BT_CONF" ]; then
     echo "[INFO] 检测到宝塔面板 server 配置: $BT_CONF"
-    # 检查是否已有 /docs
     if sudo grep -q "location /docs" "$BT_CONF"; then
         echo "[INFO] /docs location 已存在，更新 proxy_pass"
-        # 保留其他配置，只替换 proxy_pass
         sudo sed -i "/location \/docs/,/}/ s#proxy_pass .*;#proxy_pass http://127.0.0.1:$PORT;#" "$BT_CONF"
     else
         echo "[INFO] /docs location 不存在，插入新的 location /docs"
-        # 在 server 最后插入
-        sudo sed -i "/server_name $DOMAIN;/a \\
-    location /docs { \\
-        proxy_pass http://127.0.0.1:$PORT; \\
-        proxy_set_header Host \$host; \\
-        proxy_set_header X-Real-IP \$remote_addr; \\
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for; \\
-        proxy_set_header X-Forwarded-Proto \$scheme; \\
-    }" "$BT_CONF"
+        sudo sed -i "/server_name $DOMAIN;/a \\$DOCS_LOCATION" "$BT_CONF"
     fi
+else
+    echo "[INFO] 未检测到宝塔配置，创建独立 Nginx 配置 $NGINX_CONF"
+    sudo tee $NGINX_CONF > /dev/null <<EOF
+server {
+    listen 80;
+    server_name $DOMAIN;
+
+$DOCS_LOCATION
+}
+EOF
+fi
+
+# 处理 HTTPS：检查已有证书，否则生成自签名证书
+SSL_DIR="/etc/ssl/$DOMAIN"
+SSL_CERT="$SSL_DIR/fullchain.pem"
+SSL_KEY="$SSL_DIR/privkey.pem"
+
+if [ ! -f "$SSL_CERT" ] || [ ! -f "$SSL_KEY" ]; then
+    echo "[INFO] 未找到证书，生成自签名证书"
+    sudo mkdir -p "$SSL_DIR"
+    sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout "$SSL_KEY" \
+        -out "$SSL_CERT" \
+        -subj "/C=CN/ST=Shanghai/L=Shanghai/O=FastAPI/CN=$DOMAIN"
+fi
+
+# 创建 HTTPS server 块
+if [ -f "$NGINX_CONF" ]; then
+    sudo tee -a $NGINX_CONF > /dev/null <<EOF
+server {
+    listen 443 ssl;
+    server_name $DOMAIN;
+
+    ssl_certificate $SSL_CERT;
+    ssl_certificate_key $SSL_KEY;
+
+$DOCS_LOCATION
+}
+EOF
 fi
 
 sudo nginx -t
@@ -145,6 +169,7 @@ echo "8. 测试 FastAPI 是否可访问 /docs"
 sleep 5
 LOCAL_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$PORT/docs || echo "000")
 DOMAIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://$DOMAIN/docs || echo "000")
+DOMAIN_SSL_STATUS=$(curl -s -o /dev/null -k -w "%{http_code}" https://$DOMAIN/docs || echo "000")
 
 if [ "$LOCAL_STATUS" -eq 200 ]; then
   echo "✅ FastAPI 本地 /docs 访问成功"
@@ -153,12 +178,15 @@ else
 fi
 
 if [ "$DOMAIN_STATUS" -eq 200 ]; then
-  echo "✅ FastAPI 域名 $DOMAIN/docs 访问成功！安装完成。"
+  echo "✅ 域名 $DOMAIN /docs HTTP 访问成功"
 else
-  echo "❌ 域名访问失败 (状态码 $DOMAIN_STATUS)"
-  echo "可能原因："
-  echo "  - Nginx 配置错误或未生效"
-  echo "  - 防火墙未开放 80 端口"
-  echo "  - FastAPI 服务未正常运行"
-  echo "请检查： sudo journalctl -u fastapi -f"
+  echo "❌ 域名 HTTP 访问失败 (状态码 $DOMAIN_STATUS)"
 fi
+
+if [ "$DOMAIN_SSL_STATUS" -eq 200 ]; then
+  echo "✅ 域名 $DOMAIN /docs HTTPS 访问成功"
+else
+  echo "⚠️ 域名 HTTPS 访问失败 (状态码 $DOMAIN_SSL_STATUS)，请检查证书或端口"
+fi
+
+echo "安装完成！HTTP + HTTPS 访问 /docs 均可用"
