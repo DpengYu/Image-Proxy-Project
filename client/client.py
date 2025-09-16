@@ -8,12 +8,18 @@ import json
 # 配置
 # -------------------------------
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), "../config/config.json")
+if not os.path.exists(CONFIG_FILE):
+    raise FileNotFoundError(f"找不到配置文件: {CONFIG_FILE}")
+
 with open(CONFIG_FILE, "r", encoding="utf-8") as f:
     config = json.load(f)
 
 SERVER = config['server']['domain'].rstrip('/')
-USERNAME = config['users'][0]['username']
-PASSWORD = config['users'][0]['password']
+USER_INFO = config.get("users", [{}])[0]
+USERNAME = USER_INFO.get("username", "")
+PASSWORD = USER_INFO.get("password", "")
+if not USERNAME or not PASSWORD:
+    raise ValueError("config.json 中未配置有效的用户")
 
 # -------------------------------
 # 工具函数
@@ -44,13 +50,14 @@ def upload_or_get(file_path):
             return data
         elif r.status_code != 404:
             r.raise_for_status()
-    except requests.RequestException:
-        pass  # 若查询失败，尝试上传
+    except requests.RequestException as e:
+        print(f"[WARN] 查询图片信息失败: {e}")
 
     # 2. 图片不存在服务器，则上传
     with open(file_path, "rb") as f:
         r = requests.post(f"{SERVER}/upload", files={"file": f}, params=params)
-    r.raise_for_status()
+        r.raise_for_status()
+
     data = r.json()
     data['status'] = 'uploaded'
     return data
@@ -63,7 +70,7 @@ if __name__ == "__main__":
     info = upload_or_get(test_file)
     print("图片信息:")
     print(f"Status: {info.get('status')}")
-    print(f"URL: {SERVER}{info.get('url')}")
+    print(f"URL: {info.get('url')}")
     print(f"Original Name: {info.get('name')}")
     print(f"Size: {info.get('width')}x{info.get('height')}")
     print(f"Access Count: {info.get('access_count')}")

@@ -3,8 +3,10 @@ import sqlite3
 import time
 import json
 import hashlib
+import hmac
+import base64
 from io import BytesIO
-from fastapi import FastAPI, UploadFile, HTTPException, Query, Depends
+from fastapi import FastAPI, UploadFile, HTTPException, Query
 from fastapi.responses import FileResponse
 from PIL import Image
 
@@ -20,12 +22,13 @@ UPLOAD_DIR = "uploads"
 DB_FILE = "images.db"
 EXPIRE_DAYS = config["cleanup"]["expire_days"]
 USERS = {u['username']: u['password'] for u in config.get("users", [])}
+SECRET_KEY = b"SuperSecretKey123"  # HMAC密钥，用于生成 token
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 app = FastAPI()
 
 # -------------------------------
-# 数据库初始化/升级
+# 数据库初始化
 # -------------------------------
 def init_db():
     conn = sqlite3.connect(DB_FILE)
@@ -52,7 +55,7 @@ init_db()
 def check_auth(username: str = Query(...), password: str = Query(...)):
     if USERS.get(username) != password:
         raise HTTPException(status_code=403, detail="权限不足，请联系管理员")
-    return True
+    return username, password
 
 # -------------------------------
 # 工具函数
@@ -67,11 +70,32 @@ def get_image_size(data: bytes):
     except:
         return None, None
 
+def generate_token(username: str, password: str, md5: str, expire: int):
+    msg = f"{username}:{password}:{md5}:{expire}".encode("utf-8")
+    digest = hmac.new(SECRET_KEY, msg, hashlib.sha256).digest()
+    token = base64.urlsafe_b64encode(digest + b":" + msg).decode("utf-8")
+    return token
+
+def verify_token(token: str):
+    try:
+        decoded = base64.urlsafe_b64decode(token.encode("utf-8"))
+        digest, msg = decoded.split(b":", 1)
+        expected_digest = hmac.new(SECRET_KEY, msg, hashlib.sha256).digest()
+        if not hmac.compare_digest(digest, expected_digest):
+            return None
+        username, password, md5, expire_str = msg.decode("utf-8").split(":")
+        if int(expire_str) < int(time.time()):
+            return None
+        return username, password, md5
+    except Exception:
+        return None
+
 # -------------------------------
 # 上传接口 /upload
 # -------------------------------
 @app.post("/upload")
-async def upload_image(file: UploadFile, auth: bool = Depends(check_auth)):
+async def upload_image(file: UploadFile, username: str = Query(...), password: str = Query(...)):
+    check_auth(username, password)
     content = await file.read()
     md5 = get_md5(content)
     now = int(time.time())
@@ -80,15 +104,17 @@ async def upload_image(file: UploadFile, auth: bool = Depends(check_auth)):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
 
-    # 先检查服务器数据库是否已有该图片
+    # 1. 查询是否已有
     c.execute("SELECT md5, path, created_at, original_name, width, height, access_count FROM images WHERE md5=?", (md5,))
     row = c.fetchone()
     if row:
         md5_exist, path, created_at, name, w, h, access_count = row
         conn.close()
+        expire_time = created_at + EXPIRE_DAYS*86400
+        token = generate_token(username, password, md5_exist, expire_time)
         return {
-            "url": f"/get/{md5_exist}",
-            "expire_at": created_at + EXPIRE_DAYS*86400,
+            "url": f"{SERVER_DOMAIN}/secure_get/{md5_exist}?token={token}",
+            "expire_at": expire_time,
             "name": name,
             "width": w,
             "height": h,
@@ -96,13 +122,12 @@ async def upload_image(file: UploadFile, auth: bool = Depends(check_auth)):
             "status": "existing"
         }
 
-    # 不存在则保存文件
+    # 2. 保存新文件
     filename = f"{md5}.png"
     path = os.path.join(UPLOAD_DIR, filename)
     with open(path, "wb") as f:
         f.write(content)
 
-    # 插入数据库
     c.execute("""
         INSERT INTO images (md5, path, created_at, original_name, width, height, access_count)
         VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -110,9 +135,11 @@ async def upload_image(file: UploadFile, auth: bool = Depends(check_auth)):
     conn.commit()
     conn.close()
 
+    expire_time = now + EXPIRE_DAYS*86400
+    token = generate_token(username, password, md5, expire_time)
     return {
-        "url": f"/get/{md5}",
-        "expire_at": now + EXPIRE_DAYS*86400,
+        "url": f"{SERVER_DOMAIN}/secure_get/{md5}?token={token}",
+        "expire_at": expire_time,
         "name": file.filename,
         "width": width,
         "height": height,
@@ -121,25 +148,25 @@ async def upload_image(file: UploadFile, auth: bool = Depends(check_auth)):
     }
 
 # -------------------------------
-# 获取图片接口 /get/{md5}
+# 加密访问接口 /secure_get/{md5}
 # -------------------------------
-@app.get("/get/{md5}")
-async def get_image(md5: str, auth: bool = Depends(check_auth)):
-    now = int(time.time())
+@app.get("/secure_get/{md5}")
+async def secure_get(md5: str, token: str):
+    result = verify_token(token)
+    if not result:
+        raise HTTPException(status_code=403, detail="无效或过期的 token")
+    username, password, md5_token = result
+    if md5 != md5_token:
+        raise HTTPException(status_code=403, detail="Token与图片不匹配")
+
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute("SELECT path, created_at, access_count FROM images WHERE md5=?", (md5,))
+    c.execute("SELECT path, access_count FROM images WHERE md5=?", (md5,))
     row = c.fetchone()
     if not row:
         conn.close()
         raise HTTPException(status_code=404, detail="Not found")
-
-    path, created_at, access_count = row
-    if now - created_at > EXPIRE_DAYS*86400:
-        conn.close()
-        raise HTTPException(status_code=410, detail="Expired")
-
-    # 更新访问次数
+    path, access_count = row
     c.execute("UPDATE images SET access_count=? WHERE md5=?", (access_count+1, md5))
     conn.commit()
     conn.close()
@@ -149,7 +176,9 @@ async def get_image(md5: str, auth: bool = Depends(check_auth)):
 # 查询图片信息接口 /info/{md5}
 # -------------------------------
 @app.get("/info/{md5}")
-async def get_image_info(md5: str, auth: bool = Depends(check_auth)):
+async def get_image_info(md5: str, username: str = Query(...), password: str = Query(...)):
+    check_auth(username, password)
+
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute("SELECT md5, created_at, original_name, width, height, access_count FROM images WHERE md5=?", (md5,))
@@ -159,9 +188,11 @@ async def get_image_info(md5: str, auth: bool = Depends(check_auth)):
         raise HTTPException(status_code=404, detail="Not found")
 
     md5_exist, created_at, name, width, height, access_count = row
+    expire_time = created_at + EXPIRE_DAYS*86400
+    token = generate_token(username, password, md5_exist, expire_time)
     return {
-        "url": f"/get/{md5_exist}",
-        "expire_at": created_at + EXPIRE_DAYS*86400,
+        "url": f"{SERVER_DOMAIN}/secure_get/{md5_exist}?token={token}",
+        "expire_at": expire_time,
         "name": name,
         "width": width,
         "height": height,
@@ -172,7 +203,8 @@ async def get_image_info(md5: str, auth: bool = Depends(check_auth)):
 # 下载数据库接口 /download_db
 # -------------------------------
 @app.get("/download_db")
-async def download_db(auth: bool = Depends(check_auth)):
+async def download_db(username: str = Query(...), password: str = Query(...)):
+    check_auth(username, password)
     if not os.path.exists(DB_FILE):
         raise HTTPException(status_code=404, detail="Database not found")
     return FileResponse(DB_FILE, filename="images.db", media_type="application/octet-stream")
