@@ -1,389 +1,184 @@
-# Image Proxy Project v2.0
+# 🖼️ Image Proxy Project
 
-> 高性能、安全、易用的图片上传与代理服务 - 完全重构版本
+> **企业级图片上传与代理服务** - 高性能、安全可靠、开箱即用
 
-[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Latest-green.svg)](https://fastapi.tiangolo.com/)
+[![systemd](https://img.shields.io/badge/systemd-Compatible-red.svg)](https://systemd.io/)
 
-## ✨ 新版本亮点
-
-### 🔒 安全增强
-- **加密密钥管理**: 不再硬编码，支持环境变量配置
-- **文件类型验证**: 严格的文件头检测，防止恶意文件
-- **输入验证**: 全面的参数验证和SQL注入防护
-- **速率限制**: 内置请求频率限制，防止滥用
-- **安全日志**: 详细的安全事件记录
-
-### 🏗️ 架构优化
-- **模块化设计**: 清晰的代码分层和职责分离
-- **异常处理**: 完善的错误处理和用户友好提示
-- **日志系统**: 结构化日志，支持轮转和级别控制
-- **配置管理**: 支持JSON、环境变量、.env文件
-- **数据库优化**: 连接池、索引优化、统计信息
-
-### 🚀 功能增强
-- **客户端重构**: 支持重试、连接池、本地缓存
-- **批量操作**: 支持批量上传和管理
-- **健康检查**: 内置监控端点
-- **系统统计**: 丰富的使用统计信息
-- **API文档**: 完整的OpenAPI文档
-
-### 🧪 质量保证
-- **单元测试**: 覆盖核心功能的测试套件
-- **代码规范**: Black、flake8、mypy代码质量工具
-- **类型提示**: 完整的类型注解
-- **依赖管理**: 版本锁定，安全性扫描
+一套专为现代应用设计的高性能图片上传与代理系统，支持本地上传、云端存储、智能缓存和自动过期管理。无论是个人项目还是企业应用，都能快速集成并稳定运行。
 
 ---
 
-## 📚 文档导航
+## 🎯 核心特性
 
-> 📖 **快速访问重要文档和工具**
+### 🚀 **高性能架构**
+- **异步处理**: 基于FastAPI + Uvicorn，支持高并发上传
+- **智能去重**: 客户端与服务端双重MD5校验，避免重复存储
+- **本地缓存**: SQLite本地缓存，提升访问效率
+- **自动过期**: 可配置的图片生命周期管理
 
-| 📋 文档类型 | 🔗 链接 | 📝 说明 |
-|------------|--------|--------|
-| 🚀 **快速部署** | **[QUICKSTART.md](QUICKSTART.md)** | **5分钟快速部署指南** |
-| 📖 **API文档** | **[docs/API.md](docs/API.md)** | **完整的API接口说明** |
-| 🚢 **部署指南** | **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** | **生产环境部署指南** |
-| 👨‍💻 **开发文档** | **[DEVELOPMENT.md](DEVELOPMENT.md)** | **开发环境搭建指南** |
-| 🔧 **工具使用** | [tools/](#🔧-实用工具) | 密钥生成、服务测试等工具 |
-| 💡 **集成示例** | **[examples/integration_examples.py](examples/integration_examples.py)** | **第三方项目集成示例** |
-| 🧪 **测试文档** | [tests/](tests/) | 单元测试和测试配置 |
+### 🛡️ **企业级安全**
+- **身份认证**: 用户名密码双重验证
+- **文件校验**: 严格的文件类型和大小限制
+- **速率限制**: 防止滥用的智能限流
+- **安全Token**: 动态生成的访问令牌
 
-### 🎯 快速导航
+### 🔧 **运维友好**
+- **一键部署**: 完整的自动化安装脚本
+- **服务管理**: systemd服务管理，支持开机自启
+- **日志监控**: 完善的日志系统和状态监控
+- **定时清理**: 自动清理过期文件，节省存储空间
 
-- **🆕 新用户**: 👉 [快速部署指南](QUICKSTART.md)
-- **🔌 集成开发**: 👉 [API文档](docs/API.md) + [集成示例](examples/integration_examples.py)
-- **🚀 生产部署**: 👉 [部署指南](docs/DEPLOYMENT.md)
-- **🐛 问题排查**: 👉 [常见问题](#常见问题) + [开发文档](DEVELOPMENT.md)
+### 🔌 **集成便捷**
+- **多种方式**: 支持API调用、Python包、单文件集成
+- **第三方友好**: 标准化的客户端包，支持pip安装
+- **配置灵活**: 支持配置文件、环境变量等多种配置方式
+- **文档完善**: 详细的使用文档和集成示例
+
+---
+
+## 🏗️ 系统架构
+
+### 整体架构图
+
+```
+┌─────────────────┐    HTTP     ┌─────────────────┐
+│                 │    请求     │                 │
+│  客户端应用      │ ─────────> │   FastAPI服务    │
+│                 │             │                 │
+│ • Web应用       │             │ • 图片上传       │
+│ • 移动应用      │             │ • 访问代理       │ 
+│ • 桌面程序      │             │ • 权限验证       │
+│ • 脚本工具      │             │ • 文件管理       │
+│                 │             │                 │
+└─────────────────┘             └─────────────────┘
+         │                               │
+         │ SQLite缓存                    │ 文件存储 + SQLite数据库
+         ▼                               ▼
+┌─────────────────┐             ┌─────────────────┐
+│   本地缓存       │             │   服务器存储     │
+│                 │             │                 │
+│ • URL缓存       │             │ • uploads/目录   │
+│ • MD5记录       │             │ • images.db     │
+│ • 重复检测      │             │ • 元数据管理     │
+└─────────────────┘             └─────────────────┘
+```
+
+### 核心组件关系
+
+**客户端层**:
+- **应用客户端**: 各种需要图片上传功能的应用
+- **Python包**: 标准化的`image_proxy_client`包
+- **本地缓存**: SQLite数据库缓存已上传图片信息
+
+**服务端层**:
+- **FastAPI服务**: 处理HTTP请求，提供RESTful API
+- **文件存储**: 本地`uploads/`目录存储图片文件
+- **数据库**: SQLite存储图片元数据和访问记录
+
+**运维层**:
+- **systemd服务**: 自动启动和监控服务状态
+- **Nginx代理**: 反向代理和负载均衡（可选）
+- **定时清理**: 自动清理过期文件和数据
 
 ---
 
 ## 🚀 快速开始
 
-### 1. 环境准备
-```bash
-# 克隆项目
-git clone https://github.com/DpengYu/Image-Proxy-Project.git
-cd image_proxy_project
+### 方式一：一键自动部署（推荐）
 
-# 创建虚拟环境
+适用于**Linux生产环境**，完全自动化的部署方案：
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/DpengYu/Image-Proxy-Project.git
+cd Image-Proxy-Project
+
+# 2. 一键安装和部署
+cd scripts
+sudo ./install.sh
+```
+
+**自动完成的工作**：
+- ✅ 检查系统要求（Python 3.10+、systemd、nginx等）
+- ✅ 创建虚拟环境并安装所有依赖
+- ✅ 生成安全配置和密钥
+- ✅ 配置systemd服务和定时任务
+- ✅ 设置Nginx反向代理
+- ✅ 启动服务并验证安装
+
+### 方式二：手动开发部署
+
+适用于**开发调试**或需要自定义配置的场景：
+
+```bash
+# 1. 环境准备
 python3 -m venv venv
 source venv/bin/activate  # Linux/Mac
 # 或 venv\Scripts\activate  # Windows
 
-# 安装依赖
+# 2. 安装依赖
 pip install -r requirements.txt
-```
 
-### 2. 配置服务
-```bash
-# 复制配置模板
+# 3. 配置服务
 cp config/config.template.json config/config.json
-cp .env.example .env
+# 编辑 config/config.json 修改必要参数
 
-# 编辑配置文件
-vim config/config.json
-```
+# 4. 生成安全密钥
+python tools/generate_secret_key.py --config config/config.json --password
 
-**必要配置项：**
-- `server.domain`: 你的域名或IP
-- `security.secret_key`: **必须**设置为随机32位字符串
-- `users`: 配置用户名和密码
-
-### 3. 启动服务
-```bash
-# 开发环境
+# 5. 启动服务
 cd server
-python -m uvicorn server:app --reload --host 0.0.0.0 --port 8000
-
-# 生产环境（Linux）
-cd scripts
-sudo ./install.sh
+python -m uvicorn server:app --host 0.0.0.0 --port 8000
 ```
 
-### 4. 测试使用
-```bash
-# 测试客户端
-cd client
-python client.py
+### 🎉 安装完成验证
 
-# 测试API
+```bash
+# 检查服务状态
 curl http://localhost:8000/health
-```
 
-## 🔧 实用工具
-
-### 🔑 密钥生成器
-```bash
-# 生成并自动配置密钥
-python tools/generate_secret_key.py --config config/config.json --username admin --password
-
-# 只生成密钥
-python tools/generate_secret_key.py
-
-# 生成环境变量格式
-python tools/generate_secret_key.py --env
-```
-
-### 🧪 服务测试器
-```bash
-# 完整测试
+# 运行完整测试
 python tools/test_service.py
 
-# 快速测试（健康检查+认证）
-python tools/test_service.py --quick
-
-# 指定配置文件
-python tools/test_service.py --config /path/to/config.json
-```
-
-### 📦 第三方集成
-
-**方式1: Git Submodule (推荐)**
-```bash
-# 添加为子模块并只获取客户端包
-git submodule add https://github.com/DpengYu/Image-Proxy-Project.git image_proxy
-cd image_proxy
-git sparse-checkout init --cone
-git sparse-checkout set image_proxy_client
-
-# 在你的项目中使用
-import sys
-sys.path.append('image_proxy')
-from image_proxy_client import quick_upload
-
-# 单行代码上传图片
-url = quick_upload("http://your-domain.com", "admin", "password", "image.jpg")
-print(f"图片URL: {url}")
-```
-
-**方式2: 直接复制包**
-```bash
-# 克隆仓库
-git clone https://github.com/DpengYu/Image-Proxy-Project.git
-cd Image-Proxy-Project
-
-# 复制客户端包到你的项目
-cp -r image_proxy_client /path/to/your/project/
-
-# 使用
-from image_proxy_client import ImageProxyClient
-with ImageProxyClient("http://your-domain.com", "admin", "password") as client:
-    url = client.get_image_url("image.jpg")
-```
-
-**方式3: Pip安装**
-```bash
-# 直接从仓库安装
-pip install git+https://github.com/DpengYu/Image-Proxy-Project.git#subdirectory=image_proxy_client
-
-# 使用
-from image_proxy_client import quick_upload
-url = quick_upload("http://your-domain.com", "admin", "password", "image.jpg")
-```
-
-### 📄 集成示例
-```bash
-# 查看各种集成示例
-python examples/integration_examples.py
-```
-
-## 🛠️ 脚本管理
-
-Image Proxy Project 提供完整的一键式脚本管理工具：
-
-### 一键安装部署
-```bash
-# 完整安装和配置系统
-cd scripts
-sudo ./install.sh
-
-# 安装脚本会自动：
-# - 检查系统要求（Python 3.10+, systemd, nginx等）
-# - 创建虚拟环境并安装依赖
-# - 检查和初始化配置文件
-# - 配置 systemd 服务和定时任务
-# - 设置 Nginx 反向代理
-# - 启动服务并验证安装
-```
-
-### 服务管理
-```bash
-# 一键启动服务
-sudo ./start.sh
-
-# 一键停止服务
-sudo ./stop.sh
-
-# 手动管理
-sudo systemctl start fastapi    # 启动
-sudo systemctl stop fastapi     # 停止
-sudo systemctl restart fastapi  # 重启
-sudo systemctl status fastapi   # 状态
-```
-
-### 数据管理
-```bash
-# 重置数据库和上传文件
-./reset.sh
-
-# 完全卸载系统
-./uninstall.sh
-```
-
-### 日志管理
-```bash
-# 查看实时日志
-journalctl -u fastapi --no-pager -f
-
-# 查看最近50条日志
-journalctl -u fastapi --no-pager -n 50
-
-# 查看清理任务日志
-journalctl -u fastapi-cleanup --no-pager -f
+# 访问API文档
+# 浏览器打开: http://your-domain.com/docs
 ```
 
 ---
 
-## 目录
+## ⚙️ 配置说明
 
-- [项目概述](#项目概述)  
-- [核心功能](#核心功能)  
-- [系统架构](#系统架构)  
-- [文件结构](#文件结构)  
-- [配置文件说明](#配置文件说明)  
-- [系统要求](#系统要求)  
-- [安装指南](#安装指南)  
-- [客户端使用](#客户端使用)  
-- [外部接口调用](#外部接口调用)  
-- [维护与扩展](#维护与扩展)  
-- [快速示例](#快速示例)  
-- [特性总结](#特性总结)  
-- [常见问题](#常见问题)  
+### 核心配置文件：`config/config.json`
 
----
+| 配置项 | 说明 | 默认值 | 必须修改 |
+|--------|------|--------| --------|
+| `server.domain` | 服务访问域名/IP | `http://localhost` | ✅ |
+| `server.port` | 服务端口 | `8000` | ❌ |
+| `security.secret_key` | 32位安全密钥 | 模板值 | ✅ |
+| `users[0].username` | 管理员用户名 | `admin` | ✅ |
+| `users[0].password` | 管理员密码 | 模板值 | ✅ |
 
-## 项目概述
-
-Image Proxy Project 是一套高性能、轻量化的图片上传与代理系统，专为图片管理与访问场景设计。支持本地上传、服务器存储、URL 生成及缓存管理，可用于 API 调用、网页展示或内部服务。
-
-主要目标：
-
-- 提高图片上传与访问效率  
-- 避免重复上传和存储  
-- 自动管理图片生命周期  
-- 保证服务稳定与安全  
-
----
-
-## 核心功能
-
-| 功能 | 描述 |
-|------|------|
-| 图片上传与访问 | 本地图片上传至服务器，返回可访问 URL，可直接用于 API 或网页调用 |
-| 重复去重 | 客户端和服务器端使用 MD5 双重去重，避免重复上传和存储 |
-| 自动过期 | 图片及缓存可配置过期天数（默认 30 天），自动清理 |
-| 高性能服务 | FastAPI + Uvicorn 异步处理大量并发请求 |
-| 客户端缓存 | 使用 SQLite 存储图片 URL 和 MD5，提升访问效率 |
-| 定时清理 | 每日自动清理过期图片，可自定义时间与开关 |
-| 数据库下载 | 可从服务器下载 SQLite 数据库备份 |
-| 安全与权限 | 用户权限控制，权限不足时返回提示而非报错 |
-| 系统稳定性 | systemd 管理服务，支持自动重启和开机自启 |
-
----
-
-## 系统架构
-
-```text
-+-----------------+         +-------------------+
-|                 |  HTTP   |                   |
-|  客户端 Client  +-------->+   FastAPI Server  |
-|                 |         |                   |
-+--------+--------+         +--------+----------+
-^                           |
-| SQLite Cache              | SQLite DB + Uploads/
-|                           |
-+---------------------------+
-````
-
-* **客户端**：上传图片、缓存 URL、防止重复上传。
-* **服务器端**：接收图片、存储、生成 URL、维护 SQLite 数据库。
-* **Nginx（可选）**：反向代理 FastAPI 服务，可用于域名访问。
-* **定时清理**：systemd Timer 每日执行 `cleanup.py`，删除过期图片和缓存。
-
----
-
-## 📁 项目结构
-
-```
-image_proxy_project/
-├── client/                 # 客户端代码
-│   ├── client.py          # 增强的主客户端
-│   └── download_db.py     # 数据库下载工具
-├── image_proxy_client/     # 第三方集成包 (重点)
-│   ├── __init__.py        # 包初始化文件
-│   ├── client.py          # 核心客户端类
-│   ├── config.py          # 配置管理
-│   ├── cli.py             # 命令行工具
-│   ├── setup.py           # 安装脚本
-│   ├── requirements.txt   # 依赖管理
-│   └── README.md          # 使用文档
-├── server/                # 服务端代码
-│   ├── server.py          # FastAPI 主服务
-│   ├── database.py        # 数据库管理器
-│   ├── security_utils.py  # 安全工具
-│   ├── config_validator.py # 配置验证器
-│   ├── config_loader.py   # 配置加载器
-│   ├── logger_config.py   # 日志配置
-│   └── cleanup.py         # 清理脚本
-├── scripts/               # 部署和管理脚本 (新增)
-│   ├── install.sh         # 一键安装部署脚本
-│   ├── start.sh           # 一键启动服务脚本
-│   ├── stop.sh            # 一键停止服务脚本
-│   ├── reset.sh           # 数据重置脚本
-│   └── uninstall.sh       # 完全卸载脚本
-├── config/                # 配置文件
-│   ├── config.template.json # 配置模板
-│   └── config.json        # 实际配置 (已忽略)
-├── tools/                 # 实用工具
-│   ├── generate_secret_key.py # 密钥生成工具
-│   ├── test_service.py    # 服务测试工具
-│   └── quick_setup.py     # 快速配置工具
-├── tests/                 # 测试代码
-├── docs/                  # 文档
-├── examples/              # 集成示例
-│   └── integration_examples.py # 第三方集成示例
-├── demo_integration.py    # 集成演示脚本
-├── requirements.txt       # 主依赖管理
-└── README.md              # 项目说明
-```
-
-### 🛠️ 脚本目录详解
-
-`scripts/` 目录包含了完整的项目管理脚本：
-
-| 脚本 | 功能 | 使用场景 |
-|------|------|----------|
-| `install.sh` | 一键安装部署 | 首次部署或重新安装 |
-| `start.sh` | 一键启动服务 | 日常启动服务 |
-| `stop.sh` | 一键停止服务 | 维护或停止服务 |
-| `reset.sh` | 数据重置 | 清空数据库和上传文件 |
-| `uninstall.sh` | 完全卸载 | 移除所有相关组件 |
-
----
-## 配置文件说明
-
-路径：`config/config.json`
-
-示例：
+### 完整配置结构
 
 ```json
 {
   "server": {
-    "domain": "yourDomain",
+    "domain": "http://your-domain.com",
     "port": 8000
+  },
+  "security": {
+    "secret_key": "your-32-char-secret-key-here",
+    "upload": {
+      "max_file_size_mb": 10,
+      "allowed_types": ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    },
+    "rate_limit": {
+      "max_requests": 100,
+      "window_seconds": 60
+    }
   },
   "cleanup": {
     "enable": true,
@@ -392,355 +187,462 @@ image_proxy_project/
   },
   "users": [
     {
-      "username": "alice",
-      "password": "alice123"
+      "username": "admin",
+      "password": "your-secure-password"
     }
   ]
 }
 ```
 
-**参数说明**
+### 快速配置工具
 
-| 参数                     | 说明                                      |
-| ---------------------- | --------------------------------------- |
-| `server.domain`        | 客户端访问服务器的域名或 IP，用于生成图片 URL              |
-| `server.port`          | FastAPI 服务端口                            |
-| `cleanup.enable`       | 是否开启每日自动清理过期图片                          |
-| `cleanup.expire_days`  | 图片和缓存的过期天数                              |
-| `cleanup.cleanup_time` | 每日清理时间（HH\:MM\:SS），仅在 `enable=true` 时生效 |
-| `users`                | 允许访问客户端功能的账号列表，权限不足时返回友好提示              |
+```bash
+# 自动生成安全配置
+python tools/generate_secret_key.py --config config/config.json --username admin --password
+
+# 快速配置向导
+python tools/quick_setup.py --domain http://your-domain.com
+```
 
 ---
 
-## 系统要求
+## 🛠️ 服务管理
 
-* **操作系统**：Linux (Ubuntu/CentOS)
-* **Python**：3.10+
-* **systemd**：管理服务和定时任务
-* **jq**：安装脚本读取 JSON 配置（Debian/Ubuntu 安装：`sudo apt install jq -y`）
+### 一键管理脚本
 
----
-
-## 安装指南
-
-### 1. 克隆项目
+项目提供完整的服务管理脚本，位于`scripts/`目录：
 
 ```bash
-git clone https://github.com/DpengYu/Image-Proxy-Project.git
-cd image_proxy_project
+# 一键安装部署
+sudo ./install.sh
+
+# 服务控制
+sudo ./start.sh      # 启动所有服务
+sudo ./stop.sh       # 停止所有服务
+
+# 数据管理  
+./reset.sh           # 重置数据库和上传文件（谨慎使用）
+./uninstall.sh       # 完全卸载系统（保留配置）
 ```
 
-### 2. 配置服务器
-
-编辑 `config/config.json`，设置 `domain`、`port` 和用户信息。
-
-### 3. 执行安装脚本
+### systemd服务管理
 
 ```bash
-cd scripts
-chmod +x install.sh
-./install.sh
+# 服务状态控制
+sudo systemctl start fastapi        # 启动服务
+sudo systemctl stop fastapi         # 停止服务
+sudo systemctl restart fastapi      # 重启服务
+sudo systemctl status fastapi       # 查看状态
+
+# 开机自启控制
+sudo systemctl enable fastapi       # 开机自启
+sudo systemctl disable fastapi      # 禁用自启
 ```
 
-* FastAPI 服务将启动，由 systemd 管理。
-* 支持自动重启和开机自启。
-* 定时清理服务将每日按配置执行。
-
-### 4. 查看日志
-
-* FastAPI 服务日志：`/var/log/image_proxy/fastapi.log`
-* 定时清理日志：
+### 日志管理
 
 ```bash
+# 实时查看日志
+journalctl -u fastapi --no-pager -f
+
+# 查看最近日志
+journalctl -u fastapi --no-pager -n 100
+
+# 查看清理任务日志
 journalctl -u fastapi-cleanup --no-pager -f
 ```
 
 ---
 
-## 客户端使用
+## 📖 使用指南
 
-```bash
-cd client
-python3 client.py
-```
+### 1. 基础客户端使用
 
-* 自动读取 `config.json` 中的 `server.domain` 和 `port`
-* 上传图片后返回 URL，可直接用于 API 或网页访问
-* 客户端缓存图片 URL，避免重复上传
-* 用户权限不足时返回 `"该用户权限不足，请联系管理员"`
-
-### 下载服务器数据库
-
-```bash
-python3 download_db.py
-```
-
-* 默认保存为 `images_server.db`
-* 需要用户权限足够，否则返回提示信息
-
----
-
-## 外部接口调用
-
-客户端提供了 Python 模块化接口，方便在其他工程中直接调用，无需通过 CLI。
-
-### 1. 上传图片并获取完整 URL
-
-```python
-from image_proxy_project.client.client import get_image_url
-
-# 使用您自己的图片文件
-file_path = "your_image.png"
-url = get_image_url(file_path)
-
-if url:
-    print(f"✅ 图片 URL: {url}")
-else:
-    print("❌ 无法获取图片 URL，可能权限不足或上传失败")
-```
-
-**说明**：
-
-* `get_image_url(file_path: str) -> Optional[str]`
-
-  * 输入：本地图片路径
-  * 输出：图片在服务器上的完整 URL（字符串），失败时返回 `None`
-  * 内部会先查询服务器是否已存在该图片，若不存在则上传
-  * 权限不足或网络异常时，不抛异常，只返回 `None`
-
----
-
-### 2. 获取完整图片信息（字典）
-
-```python
-from image_proxy_project.client.client import upload_or_get
-
-# 使用您自己的图片文件
-info = upload_or_get("your_image.png")
-
-if "error" in info:
-    print(info["error"])
-else:
-    print("图片信息:")
-    print(f"Status: {info.get('status')}")
-    print(f"URL: {info.get('url')}")
-    print(f"Original Name: {info.get('name')}")
-    print(f"Size: {info.get('width')}x{info.get('height')}")
-    print(f"Access Count: {info.get('access_count')}")
-    print(f"Expire At: {info.get('expire_at')}")
-```
-
-**说明**：
-
-* `upload_or_get(file_path: str) -> dict`
-
-  * 返回包含完整图片信息的字典
-  * 失败时包含 `"error"` 字段
-  * 可用于开发者获取更多元数据或做二次处理
-
----
-
-### 3. 外部调用示例
-
-```python
-from image_proxy_project.client.client import get_image_url
-
-url = get_image_url("/absolute/path/to/image.png")
-print(url)
-```
-
----
-
-## 维护与扩展
-
-* **修改过期时间或清理间隔**：
-
-```bash
-vim config/config.json
-```
-
-* **修改服务器域名或端口**：
-
-```bash
-sudo systemctl restart fastapi
-```
-
-* **修改定时清理时间或开关**：
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl restart fastapi-cleanup.timer
-```
-
----
-
-## 快速示例
-
-### 上传图片并获取 URL
-
+**Python客户端**（推荐）：
 ```python
 from client.client import upload_or_get
 
-# 使用您自己的图片文件
-info = upload_or_get("your_image.png")
-print("图片信息:")
-print(f"Status: {info.get('status')}")
-print(f"URL: {info.get('url')}")
-print(f"Original Name: {info.get('name')}")
-print(f"Size: {info.get('width')}x{info.get('height')}")
-print(f"Access Count: {info.get('access_count')}")
-print(f"Expire At: {info.get('expire_at')}")
+# 上传图片并获取信息
+info = upload_or_get("your_image.jpg")
+print(f"图片URL: {info['url']}")
+print(f"图片大小: {info['width']}x{info['height']}")
 ```
 
-### 下载服务器数据库
-
+**命令行工具**：
 ```bash
-python3 client/download_db.py
+cd client
+python client.py your_image.jpg
 ```
 
----
+### 2. 第三方项目集成
 
-## 特性总结
-
-* **高性能**：异步 FastAPI + Uvicorn 支持大并发
-* **稳定可靠**：systemd 管理服务，开机自启，自动重启
-* **安全防重复**：MD5 去重，自动过期管理
-* **易配置**：所有参数统一放在 `config.json`，无需修改代码
-* **轻量化**：客户端缓存 SQLite，无需额外数据库
-* **友好提示**：权限不足时返回提示而非报错，提升可用性
-
----
-
-## 常见问题
-
-1. **客户端提示权限不足怎么办？**
-
-   * 请检查 `config.json` 中 `users` 配置的账号密码是否正确。
-
-2. **访问域名显示 404？**
-
-   * 确认 Nginx 或系统防火墙端口是否正确开放
-   * 检查 `server.domain` 与实际访问域名是否一致
-
-3. **定时清理未执行？**
-
-   * 使用 `systemctl status fastapi-cleanup.timer` 查看 timer 状态
-   * 确认 `cleanup.enable` 是否为 `true`，以及时间格式是否正确
-
----
-
-## 🔗 重要链接和资源
-
-### 📚 核心文档
-| 文档名称 | 链接 | 用途 |
-|---------|------|------|
-| 🚀 快速部署指南 | **[QUICKSTART.md](QUICKSTART.md)** | 5分钟快速上手 |
-| 📖 API完整文档 | **[docs/API.md](docs/API.md)** | 接口规范和使用 |
-| 🛠️ 部署指南 | **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** | 生产环境部署 |
-| 👨‍💻 开发指南 | **[DEVELOPMENT.md](DEVELOPMENT.md)** | 开发环境搭建 |
-
-### 🔧 实用工具
-| 工具名称 | 文件路径 | 功能说明 |
-|---------|----------|----------|
-| 🔑 密钥生成器 | `tools/generate_secret_key.py` | 生成32位安全密钥 |
-| 🧪 服务测试器 | `tools/test_service.py` | 验证功能完整性 |
-| ⚡ 一键配置 | `tools/quick_setup.py` | 自动化环境设置 |
-| 📦 简化客户端 | `client/image_proxy_simple.py` | 单行代码集成 |
-
-### 💡 示例代码
-| 示例类型 | 文件路径 | 内容说明 |
-|---------|----------|----------|
-| 🌐 Web框架集成 | `examples/integration_examples.py` | Flask/Django集成 |
-| 📱 CLI工具 | `examples/integration_examples.py` | 命令行工具示例 |
-| 🔄 后台任务 | `examples/integration_examples.py` | Celery任务集成 |
-| ⚠️ 错误处理 | `examples/integration_examples.py` | 重试和错误处理 |
-
----
-
-## 🎯 快速行动指南
-
-### 🔰 初次使用？
-```bash
-# 1. 一键配置和启动
-python tools/quick_setup.py --domain "http://your-domain.com" --username admin
-
-# 2. 测试服务
-python tools/test_service.py --quick
-
-# 3. 查看API文档
-# 浏览器访问: http://your-domain.com/docs
-```
-
-### 🔌 需要集成到项目？
+**方式一：使用image_proxy_client包**（推荐）
 ```python
-# 复制简化客户端到你的项目
-cp client/image_proxy_simple.py /your/project/
+# 安装方式1: Git Submodule
+git submodule add https://github.com/DpengYu/Image-Proxy-Project.git image_proxy
+cd image_proxy && git sparse-checkout set image_proxy_client
 
-# 在代码中使用
-from image_proxy_simple import setup_image_proxy, upload_image
-setup_image_proxy("http://your-domain.com", "admin", "password")
-url = upload_image("photo.jpg")
+# 安装方式2: 直接复制
+cp -r image_proxy_client /path/to/your/project/
+
+# 使用示例
+from image_proxy_client import quick_upload
+
+url = quick_upload(
+    server_url="http://your-domain.com:8000",
+    username="admin",
+    password="your_password",
+    image_path="image.jpg"
+)
+print(f"图片URL: {url}")
 ```
 
-### 🚀 生产部署？
-查看 **[部署指南](docs/DEPLOYMENT.md)** 或使用一键安装：
-```bash
-cd scripts
-sudo ./install.sh
+**方式二：环境变量配置**
+```python
+import os
+from image_proxy_client import ImageProxyConfig
+
+# 设置环境变量
+os.environ['IMAGE_PROXY_URL'] = 'http://your-domain.com:8000'
+os.environ['IMAGE_PROXY_USERNAME'] = 'admin'
+os.environ['IMAGE_PROXY_PASSWORD'] = 'your_password'
+
+# 自动加载配置
+config = ImageProxyConfig()
+client = config.get_client()
+url = client.get_image_url("image.jpg")
 ```
 
-安装后使用管理脚本：
-```bash
-# 启动服务
-sudo ./start.sh
+### 3. Web应用集成示例
 
-# 停止服务
-sudo ./stop.sh
+**Flask应用集成**：
+```python
+from flask import Flask, request, jsonify
+from image_proxy_client import quick_upload
 
-# 重置数据
-./reset.sh
+app = Flask(__name__)
 
-# 卸载系统
-./uninstall.sh
+@app.route('/upload', methods=['POST'])
+def upload_image():
+    file = request.files['image']
+    temp_path = f"/tmp/{file.filename}"
+    file.save(temp_path)
+    
+    try:
+        url = quick_upload(
+            "http://localhost:8000",
+            "admin", "password",
+            temp_path
+        )
+        return jsonify({'url': url})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        os.unlink(temp_path)
 ```
 
-### 🐛 遇到问题？
+**Django应用集成**：
+```python
+# settings.py
+IMAGE_PROXY_CONFIG = {
+    'server_url': 'http://localhost:8000',
+    'username': 'admin',
+    'password': 'password'
+}
+
+# views.py
+from django.conf import settings
+from image_proxy_client import ImageProxyClient
+
+def upload_view(request):
+    config = settings.IMAGE_PROXY_CONFIG
+    with ImageProxyClient(**config) as client:
+        url = client.get_image_url(image_path)
+        return JsonResponse({'url': url})
+```
+
+### 4. API直接调用
+
+**上传图片**：
 ```bash
-# 1. 运行诊断工具
+curl -X POST "http://your-domain.com:8000/upload" \
+  -F "file=@image.jpg" \
+  -F "username=admin" \
+  -F "password=your_password"
+```
+
+**获取图片**：
+```bash
+curl "http://your-domain.com:8000/secure_get/{md5}?token={token}"
+```
+
+**健康检查**：
+```bash
+curl "http://your-domain.com:8000/health"
+```
+
+---
+
+## 🔧 实用工具
+
+### 密钥生成工具
+```bash
+# 生成32位安全密钥
+python tools/generate_secret_key.py
+
+# 自动更新配置文件
+python tools/generate_secret_key.py --config config/config.json --password
+
+# 生成环境变量格式
+python tools/generate_secret_key.py --env
+```
+
+### 服务测试工具
+```bash
+# 完整功能测试
 python tools/test_service.py
 
-# 2. 查看常见问题 (上方)
+# 快速健康检查
+python tools/test_service.py --quick
 
-# 3. 查看日志
-sudo journalctl -u image-proxy -f
+# 指定配置文件测试
+python tools/test_service.py --config /path/to/config.json
+```
 
-# 4. 检查配置
-python -c "import json; json.load(open('config/config.json'))"
+### 快速配置工具
+```bash
+# 交互式配置向导
+python tools/quick_setup.py --domain http://your-domain.com
+
+# 跳过依赖安装
+python tools/quick_setup.py --domain http://your-domain.com --skip-deps
 ```
 
 ---
 
-## 🆘 获取帮助
+## 📁 项目结构
 
-🐛 **报告问题**: [创建Issue](../../issues/new) | 💬 **讨论交流**: [Discussions](../../discussions) | 🔍 **搜索问题**: [已有Issues](../../issues)
+```
+Image-Proxy-Project/
+├── 📂 client/                 # 客户端代码
+│   ├── client.py             # 主客户端程序
+│   └── download_db.py        # 数据库下载工具
+├── 📂 image_proxy_client/     # 第三方集成包 ⭐
+│   ├── __init__.py           # 包初始化
+│   ├── client.py             # 核心客户端类
+│   ├── config.py             # 配置管理
+│   ├── cli.py                # 命令行工具
+│   ├── setup.py              # 安装脚本
+│   ├── requirements.txt      # 依赖管理
+│   └── README.md             # 使用文档
+├── 📂 server/                # 服务端代码
+│   ├── server.py             # FastAPI主服务
+│   ├── database.py           # 数据库管理
+│   ├── security_utils.py     # 安全工具
+│   ├── config_validator.py   # 配置验证
+│   ├── logger_config.py      # 日志配置
+│   └── cleanup.py            # 清理脚本
+├── 📂 scripts/               # 管理脚本 ⭐
+│   ├── install.sh            # 一键安装
+│   ├── start.sh              # 启动服务
+│   ├── stop.sh               # 停止服务
+│   ├── reset.sh              # 重置数据
+│   └── uninstall.sh          # 卸载系统
+├── 📂 tools/                 # 实用工具
+│   ├── generate_secret_key.py # 密钥生成
+│   ├── test_service.py       # 服务测试
+│   └── quick_setup.py        # 快速配置
+├── 📂 config/                # 配置文件
+│   ├── config.template.json  # 配置模板
+│   └── config.json           # 实际配置（被忽略）
+├── 📂 docs/                  # 文档目录
+│   ├── API.md                # API文档
+│   └── DEPLOYMENT.md         # 部署指南
+├── 📂 examples/              # 集成示例
+│   └── integration_examples.py # 第三方集成示例
+├── 📂 tests/                 # 测试代码
+├── 📄 QUICKSTART.md          # 快速上手指南
+├── 📄 DEVELOPMENT.md         # 开发文档
+├── 📄 THIRD_PARTY_INTEGRATION.md # 第三方集成指南
+├── 📄 demo_integration.py    # 集成演示脚本
+├── 📄 requirements.txt       # 主依赖文件
+└── 📄 README.md              # 项目说明（本文件）
+```
 
-### 📚 学习资源
-- 📘 **API学习**: [API文档](docs/API.md) + [**在线API文档**](http://your-domain.com/docs)
-- 🎯 **实践教程**: [快速部署指南](QUICKSTART.md)
-- 💡 **集成案例**: [集成示例代码](examples/integration_examples.py)
-- 🔧 **开发指南**: [开发环境文档](DEVELOPMENT.md)
-- 📦 **客户端集成**: [image_proxy_client 包文档](image_proxy_client/README.md)
+---
+
+## 🌍 使用场景
+
+### 1. 个人博客/网站
+- **场景**: 博客图片上传和管理
+- **方案**: 单机部署，使用客户端工具上传
+- **配置**: 默认配置即可，修改域名和密码
+
+### 2. 企业内部系统
+- **场景**: 内部应用的图片存储服务
+- **方案**: 服务器部署，第三方应用集成`image_proxy_client`包
+- **配置**: 配置企业域名、增加用户、设置文件大小限制
+
+### 3. 移动App后端
+- **场景**: 移动应用的图片上传接口
+- **方案**: 云服务器部署，Nginx代理，API调用
+- **配置**: 配置HTTPS、增强安全设置、设置速率限制
+
+### 4. 微服务架构
+- **场景**: 微服务中的图片服务组件
+- **方案**: 容器化部署，服务发现，负载均衡
+- **配置**: 配置集群、数据持久化、监控告警
+
+---
+
+## 🚨 故障排除
+
+### 常见问题及解决方案
+
+#### 服务启动失败
+```bash
+# 检查端口占用
+netstat -tlnp | grep :8000
+
+# 检查配置文件
+python -c "import json; json.load(open('config/config.json'))"
+
+# 查看详细错误日志
+journalctl -u fastapi --no-pager -n 50
+```
+
+#### 上传失败
+```bash
+# 检查文件权限
+ls -la server/uploads/
+
+# 检查磁盘空间
+df -h
+
+# 测试API连通性
+curl -f http://localhost:8000/health
+```
+
+#### 图片访问失败
+```bash
+# 检查Nginx配置
+sudo nginx -t
+
+# 检查服务状态
+sudo systemctl status fastapi
+
+# 检查防火墙
+sudo ufw status
+```
+
+### 重置和恢复
+
+```bash
+# 重置数据但保留配置
+./scripts/reset.sh
+
+# 重新生成密钥
+python tools/generate_secret_key.py --config config/config.json --password
+
+# 重新安装服务
+./scripts/uninstall.sh
+./scripts/install.sh
+```
+
+---
+
+## 🔒 安全建议
+
+### 生产环境安全配置
+
+1. **HTTPS配置**
+```bash
+# 使用Let's Encrypt获取SSL证书
+sudo certbot --nginx -d your-domain.com
+```
+
+2. **防火墙配置**
+```bash
+# 只开放必要端口
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 22/tcp
+sudo ufw enable
+```
+
+3. **访问控制**
+```json
+// 在config.json中限制IP访问
+{
+  "security": {
+    "allowed_ips": ["192.168.1.0/24", "10.0.0.0/8"],
+    "rate_limit": {
+      "max_requests": 50,
+      "window_seconds": 60
+    }
+  }
+}
+```
+
+4. **定期备份**
+```bash
+# 设置数据库备份cron任务
+0 2 * * * cp /path/to/server/images.db /backup/images_$(date +\%Y\%m\%d).db
+```
+
+---
+
+## 🤝 贡献指南
+
+### 开发环境搭建
+```bash
+# 克隆项目
+git clone https://github.com/DpengYu/Image-Proxy-Project.git
+cd Image-Proxy-Project
+
+# 创建开发环境
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# 运行测试
+python -m pytest tests/
+
+# 代码格式化
+black server/ client/ tools/
+```
+
+### 提交代码
+1. Fork本项目
+2. 创建特性分支：`git checkout -b feature/amazing-feature`
+3. 提交更改：`git commit -m 'Add some amazing feature'`
+4. 推送分支：`git push origin feature/amazing-feature`
+5. 创建Pull Request
 
 ---
 
 ## 📄 许可证
 
-本项目采用 **MIT License** 开源协议 - 详见 [LICENSE](LICENSE) 文件
+本项目采用 [MIT License](LICENSE) 开源协议。
 
 ---
 
-> 💡 **感谢使用 Image Proxy Project！**
+## 🙏 致谢
+
+感谢所有为本项目做出贡献的开发者和用户！
+
+---
+
+## 📞 联系我们
+
+- **项目主页**: [GitHub Repository](https://github.com/DpengYu/Image-Proxy-Project)
+- **问题反馈**: [Issues](https://github.com/DpengYu/Image-Proxy-Project/issues)
+- **功能建议**: [Discussions](https://github.com/DpengYu/Image-Proxy-Project/discussions)
+
+---
+
+> 💡 **开始使用**: 推荐先阅读 [快速上手指南](QUICKSTART.md)，然后参考 [第三方集成文档](THIRD_PARTY_INTEGRATION.md) 进行项目集成。
 > 
-> 如果您觉得这个项目有用，请给个 ⭐ **Star**！这对我们非常重要！
-> 
-> **快速开始**: [QUICKSTART.md](QUICKSTART.md) | **API文档**: [docs/API.md](docs/API.md) | **部署指南**: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+> 🔧 **生产部署**: 查看 [部署指南](docs/DEPLOYMENT.md) 了解详细的生产环境配置。
+>
+> 📚 **API文档**: 访问 `http://your-domain.com/docs` 查看完整的API文档。
