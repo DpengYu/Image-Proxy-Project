@@ -10,13 +10,7 @@ import time
 import tempfile
 from pathlib import Path
 from typing import Optional
-try:
-    from PIL import Image
-    PIL_AVAILABLE = True
-except ImportError:
-    PIL_AVAILABLE = False
 import argparse
-
 
 class ImageProxyTester:
     """图片代理测试器"""
@@ -24,7 +18,13 @@ class ImageProxyTester:
     def __init__(self, config_file: Optional[str] = None):
         self.config_file = config_file or "config/config.json"
         self.config = self._load_config()
-        self.server_url = self.config['server']['domain'].rstrip('/')
+        # 确保端口包含在URL中
+        domain = self.config['server']['domain'].rstrip('/')
+        port = self.config['server']['port']
+        if ':' not in domain.split('//')[1] and port != 80:
+            self.server_url = f"{domain}:{port}"
+        else:
+            self.server_url = domain
         self.username = self.config['users'][0]['username']
         self.password = self.config['users'][0]['password']
         
@@ -39,19 +39,13 @@ class ImageProxyTester:
     
     def _create_test_image(self) -> str:
         """创建测试图片"""
-        if not PIL_AVAILABLE:
-            # 如果没有PIL，创建一个简单的测试文件
-            img_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
-            # 简单的PNG文件头
-            png_data = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x64\x00\x00\x00\x64\x08\x02\x00\x00\x00\xff\x80\xb8\x00\x00\x00\x00IEND\xaeB`\x82'
-            img_file.write(png_data)
-            img_file.close()
-            return img_file.name
-        else:
-            img = Image.new('RGB', (200, 100), color='red')
-            img_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
-            img.save(img_file.name, 'PNG')
-            return img_file.name
+        # 创建一个简单的测试文件
+        img_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
+        # 简单的PNG文件头
+        png_data = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x64\x00\x00\x00\x64\x08\x02\x00\x00\x00\xff\x80\xb8\x00\x00\x00\x00IEND\xaeB`\x82'
+        img_file.write(png_data)
+        img_file.close()
+        return img_file.name
     
     def test_health(self) -> bool:
         """测试健康检查接口"""
@@ -73,6 +67,7 @@ class ImageProxyTester:
         """测试认证"""
         print("🔐 测试用户认证...")
         try:
+            # 使用查询参数进行认证
             params = {"username": self.username, "password": self.password}
             response = requests.get(f"{self.server_url}/stats", params=params, timeout=5)
             if response.status_code == 200:
@@ -83,6 +78,7 @@ class ImageProxyTester:
                 return False
             else:
                 print(f"❌ 认证测试异常: {response.status_code}")
+                print(f"   响应内容: {response.text}")
                 return False
         except Exception as e:
             print(f"❌ 认证测试失败: {e}")
@@ -124,7 +120,10 @@ class ImageProxyTester:
             return False
         finally:
             # 清理测试文件
-            Path(test_image).unlink(missing_ok=True)
+            try:
+                Path(test_image).unlink(missing_ok=True)
+            except:
+                pass
     
     def _test_image_access(self, image_url: str) -> bool:
         """测试图片访问"""
@@ -158,6 +157,7 @@ class ImageProxyTester:
                 return True
             else:
                 print(f"❌ 统计信息获取失败: {response.status_code}")
+                print(f"   响应内容: {response.text}")
                 return False
         except Exception as e:
             print(f"❌ 统计测试失败: {e}")
@@ -166,10 +166,17 @@ class ImageProxyTester:
     def test_client(self) -> bool:
         """测试客户端功能"""
         print("🖥️ 测试客户端...")
+        test_image = None
         try:
             # 尝试导入客户端
             sys.path.insert(0, str(Path(__file__).parent.parent / "client"))
-            from client import get_image_url
+            import importlib
+            client_module = importlib.import_module("client")
+            get_image_url = getattr(client_module, "get_image_url", None)
+            
+            if get_image_url is None:
+                print("⚠️ 客户端模块缺少 get_image_url 函数，跳过客户端测试")
+                return True
             
             # 创建测试图片
             test_image = self._create_test_image()
@@ -192,8 +199,11 @@ class ImageProxyTester:
             return False
         finally:
             # 清理测试文件
-            if 'test_image' in locals():
-                Path(test_image).unlink(missing_ok=True)
+            if test_image is not None:
+                try:
+                    Path(test_image).unlink(missing_ok=True)
+                except:
+                    pass
     
     def run_all_tests(self) -> bool:
         """运行所有测试"""

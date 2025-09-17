@@ -158,7 +158,8 @@ vim config/config.json  # 修改必要参数
 
 # 3. 一键安装部署
 cd scripts
-sudo ./install.sh
+chmod +x install.sh
+./install.sh
 ```
 
 **自动完成的工作**：
@@ -188,6 +189,7 @@ pip install -r requirements.txt
 # 3. 配置服务（关键步骤）
 cp config/config.template.json config/config.json
 # 编辑config.json，修改必要参数
+vim config/config.json  # 修改必要参数
 
 # 4. 生成安全密钥
 python tools/generate_secret_key.py --config config/config.json
@@ -195,6 +197,34 @@ python tools/generate_secret_key.py --config config/config.json
 # 5. 启动服务
 cd server
 python -m uvicorn server:app --host 0.0.0.0 --port 8000
+```
+
+### 方式三：使用启动脚本（推荐用于开发测试）
+
+适用于**开发测试环境**：
+
+```bash
+# 1. 环境准备
+git clone https://github.com/DpengYu/Image-Proxy-Project.git
+cd Image-Proxy-Project
+
+python3 -m venv venv
+source venv/bin/activate  # Linux/Mac
+# 或 venv\Scripts\activate  # Windows
+
+# 2. 安装依赖
+pip install -r requirements.txt
+
+# 3. 配置服务
+cp config/config.template.json config/config.json
+# 编辑config.json，修改必要参数
+vim config/config.json  # 修改必要参数
+
+# 4. 生成安全密钥
+python tools/generate_secret_key.py --config config/config.json
+
+# 5. 启动服务（使用启动脚本）
+python start_server.py
 ```
 
 ### 🎉 部署验证
@@ -205,6 +235,9 @@ curl http://localhost:8000/health
 
 # 运行完整功能测试
 python tools/test_service.py
+
+# 运行修复验证脚本
+python test_fix.py
 
 # 访问API文档（可选）
 # 浏览器打开: http://your-server.com:8000/docs
@@ -442,6 +475,9 @@ python tools/test_service.py --quick
 
 # 指定配置文件测试
 python tools/test_service.py --config config/config.json
+
+# 运行修复验证脚本
+python test_fix.py
 ```
 
 ### 数据库管理
@@ -533,6 +569,7 @@ async def mobile_upload(file: UploadFile = File(...)):
 | `/info/{md5}` | GET | 获取图片信息 | md5, username, password |
 | `/secure_get/{md5}` | GET | 安全访问图片 | md5, token |
 | `/health` | GET | 健康检查 | 无 |
+| `/stats` | GET | 系统统计 | username, password |
 | `/download_db` | GET | 下载数据库 | username, password |
 
 ### 响应格式
@@ -703,4 +740,4 @@ flake8 server/ client/ tools/
 
 ---
 
-*最后更新时间：2024年1月*
+*最后更新时间：2024年9月*

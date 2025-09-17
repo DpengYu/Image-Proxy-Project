@@ -213,8 +213,8 @@ echo "[STEP 7] 配置 Nginx 反向代理"
 
 BT_CONF="/www/server/panel/vhost/nginx/${DOMAIN}.conf"
 NGINX_CONF="/etc/nginx/conf.d/image-proxy.conf"
-# 更新API路径，包括新增的/stats等
-LOCS=( "/docs" "/upload" "/get" "/secure_get" "/download_db" "/stats" )
+# 更新API路径，包括新增的/stats和/health等
+LOCS=( "/docs" "/upload" "/get" "/secure_get" "/download_db" "/stats" "/health" )
 
 PY_MODIFY_SCRIPT=$(cat <<'PYCODE'
 import sys, re
@@ -255,11 +255,19 @@ if [ -f "$BT_CONF" ]; then
 else
   echo "[INFO] 未检测到宝塔配置，创建独立配置"
   sudo mkdir -p "$(dirname "$NGINX_CONF")"
+  
+  # 创建HTTP服务器块
   sudo tee "$NGINX_CONF" > /dev/null <<EOF
 # Image Proxy Project Nginx Configuration
 server {
     listen 80;
     server_name $DOMAIN;
+    
+    # HTTP重定向到HTTPS（如果证书存在）
+    # 检查SSL证书是否存在
+    if (-f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem") {
+        return 301 https://$server_name$request_uri;
+    }
     
     # 基本安全设置
     client_max_body_size 20M;
@@ -268,12 +276,53 @@ server {
     access_log /var/log/nginx/image-proxy-access.log;
     error_log /var/log/nginx/image-proxy-error.log;
 EOF
+
   for L in "${LOCS[@]}"; do
     echo "  -> 添加 location $L"
     sudo "$VENV_PY" "$PY_HELPER" "$NGINX_CONF" "$L" "http://127.0.0.1:$PORT"
   done
+  
   # 添加服务器块结束标签
   echo "}" | sudo tee -a "$NGINX_CONF" > /dev/null
+  
+  # 创建HTTPS服务器块（如果证书存在）
+  if [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/privkey.pem" ]; then
+    sudo tee -a "$NGINX_CONF" > /dev/null <<EOF
+
+server {
+    listen 443 ssl http2;
+    server_name $DOMAIN;
+    
+    # SSL证书配置
+    ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+    
+    # SSL安全设置
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384;
+    ssl_prefer_server_ciphers off;
+    
+    # 基本安全设置
+    client_max_body_size 20M;
+    
+    # 访问日志
+    access_log /var/log/nginx/image-proxy-access.log;
+    error_log /var/log/nginx/image-proxy-error.log;
+EOF
+
+    # 为HTTPS服务器块添加location配置
+    for L in "${LOCS[@]}"; do
+      sudo "$VENV_PY" "$PY_HELPER" "$NGINX_CONF" "$L" "http://127.0.0.1:$PORT"
+    done
+    
+    # 添加HTTPS服务器块结束标签
+    echo "}" | sudo tee -a "$NGINX_CONF" > /dev/null
+  else
+    echo "[INFO] SSL证书未找到，跳过HTTPS配置"
+    echo "[INFO] 您可以使用Let's Encrypt获取免费SSL证书:"
+    echo "      sudo certbot --nginx -d $DOMAIN"
+  fi
+  
   echo "✅ 独立Nginx配置创建完成"
 fi
 
@@ -346,6 +395,9 @@ echo "
 echo "
 🔗 快速链接:"
 echo "  • API文档: http://$DOMAIN/docs"
+if [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/privkey.pem" ]; then
+  echo "  • API文档(HTTPS): https://$DOMAIN/docs"
+fi
 echo "  • 管理面板: http://$DOMAIN/docs"
 echo "  • 统计信息: http://$DOMAIN/stats"
 
@@ -360,11 +412,17 @@ echo "  • 测试服务: python tools/test_service.py"
 echo "
 🔍 验证方法:"
 echo "  1. 上传测试: curl -X POST -F 'file=@/path/to/image.jpg' -F 'username=admin' -F 'password=您的密码' http://$DOMAIN/upload"
+if [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/$DOMAIN/privkey.pem" ]; then
+  echo "  1. HTTPS上传测试: curl -X POST -F 'file=@/path/to/image.jpg' -F 'username=admin' -F 'password=您的密码' https://$DOMAIN/upload"
+fi
 echo "  2. 查看数据: sqlite3 $PROJECT_DIR/server/images.db 'SELECT md5,name,access_count FROM images LIMIT 5;'"
 echo "  3. 系统状态: systemctl status fastapi"
 
 echo "
 ⚠️  重要提示:"
-echo "  • 如果使用外网访问，请确保防火墙开放端口 $PORT"
+echo "  • 如果使用外网访问，请确保防火墙开放端口 80 和 443"
 echo "  • 建议配置 HTTPS 证书以提高安全性"
+if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ] || [ ! -f "/etc/letsencrypt/live/$DOMAIN/privkey.pem" ]; then
+  echo "  • 获取免费SSL证书: sudo certbot --nginx -d $DOMAIN"
+fi
 echo "  • 定期备份数据库: $PROJECT_DIR/server/images.db"

@@ -34,6 +34,8 @@ pip install -r requirements.txt
 
 ### 3️⃣ 生成安全配置
 ```bash
+# 创建配置文件
+cp config/config.template.json config/config.json
 # 生成32位安全密钥并自动配置
 python tools/generate_secret_key.py --config config/config.json --username admin --password
 
@@ -49,15 +51,57 @@ python tools/generate_secret_key.py --config config/config.json --username admin
 vim config/config.json
 ```
 
-**需要修改的配置：**
+#### ⚙️ 配置要求
+
+在开始部署之前，请务必准备以下配置信息。**未正确配置这些参数将导致部署失败**。
+
+##### 必需配置参数
+
+| 配置项 | 说明 | 示例 | 必须修改 |
+|--------|------|------|----------|
+| **服务器域名/IP** | 客户端连接的服务器地址 | `http://your-server.com:8000` | ✅ |
+| **管理员账户** | 服务管理和API访问的用户名密码 | `admin` / `your_password` | ✅ |
+| **32位安全密钥** | 用于加密和安全验证 | 由工具自动生成 | ✅ |
+| **存储路径** | 图片文件存储目录 | `uploads/` | ❌ |
+| **数据库文件** | SQLite数据库位置 | `images.db` | ❌ |
+
+##### 配置文件位置
+- **主配置文件**：`config/config.json`
+- **环境配置**：`.env`（可选）
+
+##### 配置模板示例
 ```json
 {
   "server": {
-    "domain": "http://your-domain.com",  # 改为您的域名或IP
+    "domain": "http://your-server.com:8000",  // 必须修改
     "port": 8000
+  },
+  "security": {
+    "secret_key": "your-32-char-secret-key-here",  // 必须修改
+    "upload": {
+      "max_file_size_mb": 10,
+      "allowed_types": ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    }
+  },
+  "users": [
+    {
+      "username": "admin",        // 建议修改
+      "password": "your_password"  // 必须修改
+    }
+  ],
+  "cleanup": {
+    "enable": true,
+    "expire_days": 30,
+    "cleanup_time": "03:00:00"
   }
 }
 ```
+
+**⚠️ 重要提醒**：
+- 请勿使用默认密码部署到生产环境
+- 建议使用HTTPS域名以确保安全性
+- 确保服务器有足够的存储空间
+- 防火墙需要开放对应端口（默认8000）
 
 ### 5️⃣ 启动服务
 

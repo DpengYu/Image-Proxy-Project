@@ -61,11 +61,10 @@ Image Proxy Project is a high-performance image management solution designed for
 
 **The outstanding advantage of this project is providing image URL support for AI tools**, solving the following common pain points:
 
+- **ChatGPT API**: You can provide the URL of an image file or provide the image as a Base64 encoded data URL as input to the generation request.
 - **Jimeng AI (especially Jimeng 4.0)**: Only supports URL-based image uploads, and this project perfectly solves the local image to URL conversion requirement
-- **ChatGPT API**: GPT-4V and other vision models require image URLs instead of direct file uploads
-- **Gemini API**: Google's multimodal models require accessible image links
-- **Claude API**: Anthropic's vision models also require image URLs for analysis
-- **Nano Banana and other AI tools**: Most AI tools require images in URL format
+- **Other AI Tools**: Most AI tools support images in URL format
+- **Jimeng 4.0 ComfyUI Node**: https://github.com/DpengYu/ComfyUI_Jimeng4-4.0-.git
 
 **Usage Flow**:
 ```
@@ -108,7 +107,7 @@ Before starting deployment, please prepare the following configuration informati
 - **Environment Configuration**: `.env` (optional)
 
 ### Configuration Template Example
-```json
+```
 {
   "server": {
     "domain": "http://your-server.com:8000",  // Must modify
@@ -160,7 +159,8 @@ vim config/config.json  # Modify required parameters
 
 # 3. One-click installation and deployment
 cd scripts
-sudo ./install.sh
+chmod +x install.sh
+./install.sh
 ```
 
 **Automatically completed work**:
@@ -190,6 +190,7 @@ pip install -r requirements.txt
 # 3. Configure service (critical step)
 cp config/config.template.json config/config.json
 # Edit config.json, modify required parameters
+vim config/config.json  # Modify required parameters
 
 # 4. Generate security key
 python tools/generate_secret_key.py --config config/config.json
@@ -197,6 +198,34 @@ python tools/generate_secret_key.py --config config/config.json
 # 5. Start service
 cd server
 python -m uvicorn server:app --host 0.0.0.0 --port 8000
+```
+
+### Method 3: Using Startup Script (Recommended for Development Testing)
+
+Suitable for **development testing environment**:
+
+```bash
+# 1. Environment preparation
+git clone https://github.com/DpengYu/Image-Proxy-Project.git
+cd Image-Proxy-Project
+
+python3 -m venv venv
+source venv/bin/activate  # Linux/Mac
+# or venv\Scripts\activate  # Windows
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Configure service
+cp config/config.template.json config/config.json
+# Edit config.json, modify required parameters
+vim config/config.json  # Modify required parameters
+
+# 4. Generate security key
+python tools/generate_secret_key.py --config config/config.json
+
+# 5. Start service (using startup script)
+python start_server.py
 ```
 
 ### 🎉 Deployment Verification
@@ -207,6 +236,9 @@ curl http://localhost:8000/health
 
 # Run complete functionality test
 python tools/test_service.py
+
+# Run repair verification script
+python test_fix.py
 
 # Access API documentation (optional)
 # Open browser: http://your-server.com:8000/docs
@@ -320,7 +352,7 @@ print(f"Image URL: {url}")
 
 #### ChatGPT API Integration
 ```python
-import openai
+from openai import OpenAI
 from client.client import quick_upload
 
 # 1. Upload local image to get URL
@@ -331,6 +363,7 @@ image_url = quick_upload(
 )
 
 # 2. Use URL to call ChatGPT API
+client = OpenAI()
 response = openai.ChatCompletion.create(
     model="gpt-4-vision-preview",
     messages=[
@@ -370,6 +403,9 @@ response = requests.post(
     }
 )
 ```
+
+#### Jimeng 4.0 ComfyUI Node Integration
+For Jimeng 4.0 ComfyUI node integration, please refer to: https://github.com/DpengYu/ComfyUI_Jimeng4-4.0-.git
 
 #### Gemini API Integration
 ```python
@@ -492,6 +528,9 @@ python tools/test_service.py --quick
 
 # Test with specified configuration file
 python tools/test_service.py --config config/config.json
+
+# Run repair verification script
+python test_fix.py
 ```
 
 ### Database Management
@@ -583,6 +622,7 @@ async def mobile_upload(file: UploadFile = File(...)):
 | `/info/{md5}` | GET | Get image info | md5, username, password |
 | `/secure_get/{md5}` | GET | Secure image access | md5, token |
 | `/health` | GET | Health check | None |
+| `/stats` | GET | System statistics | username, password |
 | `/download_db` | GET | Download database | username, password |
 
 ### Response Format
@@ -753,4 +793,4 @@ Special thanks to:
 
 ---
 
-*Last updated: January 2024*
+*Last updated: September 2024*
