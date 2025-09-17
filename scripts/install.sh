@@ -216,6 +216,24 @@ NGINX_CONF="/etc/nginx/conf.d/image-proxy.conf"
 # 更新API路径，包括新增的/stats和/health等
 LOCS=( "/docs" "/upload" "/get" "/secure_get" "/download_db" "/stats" "/health" )
 
+# 检查宝塔面板配置文件是否存在，如果不存在则尝试查找其他可能的配置文件
+if [ ! -f "$BT_CONF" ]; then
+  echo "[DEBUG] 宝塔配置文件 $BT_CONF 不存在，尝试查找其他可能的配置文件"
+  # 检查宝塔面板目录是否存在
+  if [ -d "/www/server/panel/vhost/nginx/" ]; then
+    echo "[DEBUG] 宝塔面板目录存在，查找所有配置文件"
+    BT_FILES=$(find /www/server/panel/vhost/nginx/ -name "*.conf" 2>/dev/null || echo "")
+    if [ -n "$BT_FILES" ]; then
+      echo "[DEBUG] 找到以下宝塔配置文件:"
+      echo "$BT_FILES"
+    else
+      echo "[DEBUG] 未找到任何宝塔配置文件"
+    fi
+  else
+    echo "[DEBUG] 宝塔面板目录不存在"
+  fi
+fi
+
 PY_MODIFY_SCRIPT=$(cat <<'PYCODE'
 import sys, re
 fn, loc, proxy = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -244,7 +262,24 @@ PY_HELPER=$(mktemp)
 echo "$PY_MODIFY_SCRIPT" > "$PY_HELPER"
 chmod +x "$PY_HELPER"
 
+# 检查宝塔面板配置是否存在
+BT_EXISTS=false
 if [ -f "$BT_CONF" ]; then
+  BT_EXISTS=true
+else
+  # 尝试查找其他可能的宝塔配置文件
+  if [ -d "/www/server/panel/vhost/nginx/" ]; then
+    # 查找包含域名的配置文件
+    FOUND_BT_CONF=$(find /www/server/panel/vhost/nginx/ -name "*.conf" -exec grep -l "$DOMAIN" {} \; 2>/dev/null | head -n 1)
+    if [ -n "$FOUND_BT_CONF" ]; then
+      BT_CONF="$FOUND_BT_CONF"
+      BT_EXISTS=true
+      echo "[INFO] 找到匹配的宝塔配置: $BT_CONF"
+    fi
+  fi
+fi
+
+if [ "$BT_EXISTS" = true ]; then
   echo "[INFO] 检测到宝塔配置: $BT_CONF"
   sudo cp "$BT_CONF" "${BT_CONF}.bak.$(date +%s)" || true
   for L in "${LOCS[@]}"; do
@@ -266,7 +301,7 @@ server {
     # HTTP重定向到HTTPS（如果证书存在）
     # 检查SSL证书是否存在
     if (-f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem") {
-        return 301 https://$server_name$request_uri;
+        return 301 https://$DOMAIN$request_uri;
     }
     
     # 基本安全设置
@@ -426,3 +461,4 @@ if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ] || [ ! -f "/etc/letsen
   echo "  • 获取免费SSL证书: sudo certbot --nginx -d $DOMAIN"
 fi
 echo "  • 定期备份数据库: $PROJECT_DIR/server/images.db"
+
