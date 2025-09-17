@@ -82,4 +82,56 @@ image_proxy_project/
 
 ## 生产部署
 
-参考 `scripts/install.sh` 脚本进行自动化部署。
+### 一键部署
+使用项目提供的一键安装脚本：
+
+```bash
+cd scripts
+sudo ./install.sh
+```
+
+安装脚本会自动完成：
+- 检查系统要求（Python 3.10+, systemd, nginx等）
+- 创建虚拟环境并安装依赖
+- 检查和初始化配置文件
+- 配置 systemd 服务和定时任务
+- 设置 Nginx 反向代理
+- 启动服务并验证安装
+
+### 服务管理
+
+使用管理脚本：
+```bash
+# 启动服务
+sudo ./start.sh
+
+# 停止服务
+sudo ./stop.sh
+
+# 重置数据
+./reset.sh
+
+# 卸载系统
+./uninstall.sh
+```
+
+或使用 systemctl 命令：
+```bash
+sudo systemctl start fastapi     # 启动
+sudo systemctl stop fastapi      # 停止
+sudo systemctl restart fastapi   # 重启
+sudo systemctl status fastapi    # 状态
+```
+
+### 日志管理
+
+```bash
+# 查看实时日志
+journalctl -u fastapi --no-pager -f
+
+# 查看最近50条日志
+journalctl -u fastapi --no-pager -n 50
+
+# 查看清理任务日志
+journalctl -u fastapi-cleanup --no-pager -f
+```

@@ -1,6 +1,6 @@
 # 🚀 Image Proxy Project 快速上手指南
 
-本指南将帮助您在5分钟内快速部署和使用Image Proxy Project。
+本指南将帮助您在5分钟内快速部署和使用Image Proxy Project.
 
 ---
 
@@ -67,10 +67,25 @@ cd server
 python -m uvicorn server:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-**生产环境 (Linux)：**
+**生产环境 (Linux) - 一键安装：**
 ```bash
 cd scripts
 sudo ./install.sh
+```
+
+**生产环境 - 服务管理：**
+```bash
+# 启动服务
+sudo ./start.sh
+
+# 停止服务
+sudo ./stop.sh
+
+# 重启服务
+sudo systemctl restart fastapi
+
+# 查看状态
+sudo systemctl status fastapi
 ```
 
 ### 6️⃣ 测试服务
@@ -176,9 +191,33 @@ curl "http://your-domain.com/health"
 curl "http://your-domain.com/stats?username=admin&password=your-password"
 ```
 
+### 🛠️ 服务管理脚本
+
+项目提供完整的服务管理脚本，位于 `scripts/` 目录：
+
+**一键安装部署:**
+```bash
+cd scripts
+sudo ./install.sh  # 自动检查系统要求、安装依赖、配置服务、设置代理、启动服务
+```
+
+**服务管理:**
+```bash
+sudo ./start.sh     # 一键启动
+sudo ./stop.sh      # 一键停止
+./reset.sh          # 重置数据库和上传文件
+./uninstall.sh      # 完全卸载系统
+```
+
+**日志管理:**
+```bash
+journalctl -u fastapi --no-pager -f       # 实时日志
+journalctl -u fastapi --no-pager -n 50    # 最近50条日志
+```
+
 ---
 
-## 🌐 第三方集成示例
+## 🔐 第三方集成示例
 
 ### Python项目集成
 
