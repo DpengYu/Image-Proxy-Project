@@ -65,7 +65,7 @@
 ### 1. 环境准备
 ```bash
 # 克隆项目
-git clone <repo_url>
+git clone https://github.com/DpengYu/Image-Proxy-Project.git
 cd image_proxy_project
 
 # 创建虚拟环境
@@ -148,6 +148,31 @@ setup_image_proxy("http://your-domain.com", "admin", "password")
 url = upload_image("/path/to/image.jpg")
 print(f"图片URL: {url}")
 ```
+
+### 🚀 第三方快速获取工具
+
+**仅需转URL工具，无需下载整个工程？**
+
+**Windows PowerShell 一行命令获取：**
+```powershell
+iex (irm 'https://raw.githubusercontent.com/DpengYu/Image-Proxy-Project/main/dist/quick_get.ps1') -Mini
+```
+
+**Linux/macOS 一行命令获取：**
+```bash
+curl -fsSL https://raw.githubusercontent.com/DpengYu/Image-Proxy-Project/main/dist/quick_get.sh | bash -s -- --mini
+```
+
+**直接下载单文件：**
+```bash
+# 极简版本 (<5KB)
+wget https://raw.githubusercontent.com/DpengYu/Image-Proxy-Project/main/dist/image_proxy_mini.py
+
+# 完整版本 (<15KB)
+wget https://raw.githubusercontent.com/DpengYu/Image-Proxy-Project/main/dist/image_proxy_client.py
+```
+
+**详细获取指南：** [📖 第三方快速获取指南](dist/README.md)
 
 ### 📄 集成示例
 ```bash
@@ -319,7 +344,7 @@ image_proxy_project/
 ### 1. 克隆项目
 
 ```bash
-git clone <repo_url>
+git clone https://github.com/DpengYu/Image-Proxy-Project.git
 cd image_proxy_project
 ```
 
@@ -603,6 +628,7 @@ python -c "import json; json.load(open('config/config.json'))"
 - 🎯 **实践教程**: [快速部署指南](QUICKSTART.md)
 - 💡 **集成案例**: [集成示例代码](examples/integration_examples.py)
 - 🔧 **开发指南**: [开发环境文档](DEVELOPMENT.md)
+- 🚀 **第三方获取**: [第三方快速获取指南](dist/README.md)
 
 ---
 

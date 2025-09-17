@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Proxy Client - 第三方快速获取</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .method {
+            background: white;
+            margin: 20px 0;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .method h3 {
+            color: #007bff;
+            margin-top: 0;
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        .bash {
+            background: #2d3748;
+            color: #e2e8f0;
+        }
+        .powershell {
+            background: #012456;
+            color: #ffffff;
+        }
+        .python {
+            background: #fdf6e3;
+            color: #586e75;
+        }
+        .copy-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            float: right;
+            font-size: 12px;
+        }
+        .copy-btn:hover {
+            background: #0056b3;
+        }
+        .version-compare {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .version-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        .mini-card {
+            border-left-color: #28a745;
+        }
+        .full-card {
+            border-left-color: #007bff;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .badge-primary {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Image Proxy Client</h1>
+        <p>第三方快速获取工具 - 仅需转URL功能，无需下载整个工程</p>
+        <p><strong>轻量 · 快速 · 独立</strong></p>
+    </div>
+
+    <div class="version-compare">
+        <div class="version-card mini-card">
+            <h4>🎯 极简版本 <span class="badge badge-success">&lt; 5KB</span></h4>
+            <ul>
+                <li>基础上传功能</li>
+                <li>单文件，无配置</li>
+                <li>适合脚本集成</li>
+                <li>命令行直接使用</li>
+            </ul>
+        </div>
+        <div class="version-card full-card">
+            <h4>🛠️ 完整版本 <span class="badge badge-primary">&lt; 15KB</span></h4>
+            <ul>
+                <li>配置文件支持</li>
+                <li>健康检查功能</li>
+                <li>详细错误处理</li>
+                <li>适合项目集成</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="method">
+        <h3>🎯 方式1: 一行命令获取 (推荐)</h3>
+        
+        <h4>Windows PowerShell:</h4>
+        <div class="code-block powershell">
+            <button class="copy-btn" onclick="copyToClipboard('ps1')">复制</button>
+            <code id="ps1"># 获取极简版本
+iex (irm 'https://raw.githubusercontent.com/DpengYu/Image-Proxy-Project/main/dist/quick_get.ps1') -Mini
+
+# 获取完整版本 + 配置文件
+iex (irm 'https://raw.githubusercontent.com/DpengYu/Image-Proxy-Project/main/dist/quick_get.ps1') -Mini -Config</code>
+        </div>
+
+        <h4>Linux/macOS:</h4>
+        <div class="code-block bash">
+            <button class="copy-btn" onclick="copyToClipboard('bash1')">复制</button>
+            <code id="bash1"># 获取极简版本
+curl -fsSL https://raw.githubusercontent.com/DpengYu/Image-Proxy-Project/main/dist/quick_get.sh | bash -s -- --mini
+
+# 获取完整版本 + 配置文件
+curl -fsSL https://raw.githubusercontent.com/DpengYu/Image-Proxy-Project/main/dist/quick_get.sh | bash -s -- --mini --config</code>
+        </div>
+    </div>
+
+    <div class="method">
+        <h3>📥 方式2: 直接下载单文件</h3>
+        
+        <h4>极简版本 (&lt; 5KB):</h4>
+        <div class="code-block bash">
+            <button class="copy-btn" onclick="copyToClipboard('download1')">复制</button>
+            <code id="download1"># 只需一个文件，适合简单使用
+wget https://raw.githubusercontent.com/DpengYu/Image-Proxy-Project/main/dist/image_proxy_mini.py
+# 或
+curl -O https://raw.githubusercontent.com/DpengYu/Image-Proxy-Project/main/dist/image_proxy_mini.py</code>
+        </div>
+
+        <h4>完整版本 (&lt; 15KB):</h4>
+        <div class="code-block bash">
+            <button class="copy-btn" onclick="copyToClipboard('download2')">复制</button>
+            <code id="download2"># 支持配置文件、多种选项
+wget https://raw.githubusercontent.com/DpengYu/Image-Proxy-Project/main/dist/image_proxy_client.py
+# 或
+curl -O https://raw.githubusercontent.com/DpengYu/Image-Proxy-Project/main/dist/image_proxy_client.py</code>
+        </div>
+    </div>
+
+    <div class="method">
+        <h3>🛠️ 使用方法</h3>
+        
+        <h4>极简版本 - 命令行使用:</h4>
+        <div class="code-block bash">
+            <button class="copy-btn" onclick="copyToClipboard('usage1')">复制</button>
+            <code id="usage1">python image_proxy_mini.py http://your-server.com username password image.jpg</code>
+        </div>
+
+        <h4>极简版本 - Python代码调用:</h4>
+        <div class="code-block python">
+            <button class="copy-btn" onclick="copyToClipboard('usage2')">复制</button>
+            <code id="usage2">from image_proxy_mini import upload_image
+
+# 上传图片
+result = upload_image("http://your-server.com", "username", "password", "image.jpg")
+url = result.get('url')
+print(f"图片URL: {url}")</code>
+        </div>
+
+        <h4>完整版本 - 命令行使用:</h4>
+        <div class="code-block bash">
+            <button class="copy-btn" onclick="copyToClipboard('usage3')">复制</button>
+            <code id="usage3"># 直接指定参数
+python image_proxy_client.py -s http://your-server.com -u username -p password image.jpg
+
+# 使用配置文件
+python image_proxy_client.py --config config.json image.jpg
+
+# 检查服务健康状态
+python image_proxy_client.py --health -s http://your-server.com</code>
+        </div>
+
+        <h4>完整版本 - Python代码调用:</h4>
+        <div class="code-block python">
+            <button class="copy-btn" onclick="copyToClipboard('usage4')">复制</button>
+            <code id="usage4">from image_proxy_client import quick_upload, ImageProxyClient
+
+# 方式1: 快速上传
+url = quick_upload("http://your-server.com", "username", "password", "image.jpg")
+print(f"图片URL: {url}")
+
+# 方式2: 使用客户端类
+with ImageProxyClient("http://your-server.com", "username", "password") as client:
+    result = client.upload_image("image.jpg")
+    print(f"图片URL: {result['url']}")</code>
+        </div>
+    </div>
+
+    <div class="method">
+        <h3>⚙️ 配置文件格式</h3>
+        
+        <p>创建 <code>client_config.json</code>:</p>
+        <div class="code-block python">
+            <button class="copy-btn" onclick="copyToClipboard('config')">复制</button>
+            <code id="config">{
+  "server_url": "http://your-server.com:8000",
+  "username": "your_username",
+  "password": "your_password",
+  "timeout": 30,
+  "verify_ssl": true
+}</code>
+        </div>
+    </div>
+
+    <div class="method">
+        <h3>📋 依赖要求</h3>
+        <ul>
+            <li><strong>Python:</strong> 3.6+</li>
+            <li><strong>依赖库:</strong> requests</li>
+        </ul>
+        
+        <div class="code-block bash">
+            <button class="copy-btn" onclick="copyToClipboard('install')">复制</button>
+            <code id="install">pip install requests</code>
+        </div>
+    </div>
+
+    <div class="method">
+        <h3>🔗 更多资源</h3>
+        <ul>
+            <li>📖 <a href="../README.md">完整项目文档</a></li>
+            <li>📚 <a href="../docs/API.md">API 文档</a></li>
+            <li>🚀 <a href="../QUICKSTART.md">快速上手指南</a></li>
+            <li>💡 <a href="../examples/integration_examples.py">集成示例</a></li>
+        </ul>
+    </div>
+
+    <script>
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(function() {
+                const btn = element.parentElement.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = '已复制!';
+                btn.style.background = '#28a745';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#007bff';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

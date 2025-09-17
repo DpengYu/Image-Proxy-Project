@@ -32,7 +32,7 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
+# dist/ # 注释掉，允许第三方获取工具目录
 downloads/
 eggs/
 .eggs/

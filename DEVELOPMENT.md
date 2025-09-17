@@ -4,7 +4,7 @@
 
 1. **克隆项目**
    ```bash
-   git clone <repo_url>
+   git clone https://github.com/DpengYu/Image-Proxy-Project.git
    cd image_proxy_project
    ```
 

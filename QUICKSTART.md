@@ -17,7 +17,7 @@
 
 ### 1️⃣ 下载项目
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/DpengYu/Image-Proxy-Project.git
 cd image_proxy_project
 ```
 
