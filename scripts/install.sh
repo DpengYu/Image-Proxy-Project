@@ -226,6 +226,12 @@ if [ ! -f "$BT_CONF" ]; then
     if [ -n "$BT_FILES" ]; then
       echo "[DEBUG] 找到以下宝塔配置文件:"
       echo "$BT_FILES"
+      # 尝试查找包含域名的配置文件
+      FOUND_BT_CONF=$(find /www/server/panel/vhost/nginx/ -name "*.conf" -exec grep -l "$DOMAIN" {} \; 2>/dev/null | head -n 1)
+      if [ -n "$FOUND_BT_CONF" ]; then
+        BT_CONF="$FOUND_BT_CONF"
+        echo "[DEBUG] 找到匹配域名的宝塔配置文件: $BT_CONF"
+      fi
     else
       echo "[DEBUG] 未找到任何宝塔配置文件"
     fi
@@ -298,11 +304,11 @@ server {
     listen 80;
     server_name $DOMAIN;
     
-    # HTTP重定向到HTTPS（如果证书存在）
-    # 检查SSL证书是否存在
-    if (-f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem") {
-        return 301 https://$DOMAIN$request_uri;
-    }
+    # 如果存在SSL证书，则重定向HTTP到HTTPS
+    # 注意：Nginx不支持在server块中直接检查文件是否存在
+    # 所以我们假设如果配置了证书就执行重定向
+    # 实际上应该在安装时确保证书存在或使用certbot
+    # return 301 https://$DOMAIN\$request_uri;
     
     # 基本安全设置
     client_max_body_size 20M;
