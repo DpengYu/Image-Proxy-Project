@@ -37,6 +37,29 @@
 
 ---
 
+## 📚 文档导航
+
+> 📖 **快速访问重要文档和工具**
+
+| 📋 文档类型 | 🔗 链接 | 📝 说明 |
+|------------|--------|--------|
+| 🚀 **快速部署** | **[QUICKSTART.md](QUICKSTART.md)** | **5分钟快速部署指南** |
+| 📖 **API文档** | **[docs/API.md](docs/API.md)** | **完整的API接口说明** |
+| 🚢 **部署指南** | **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** | **生产环境部署指南** |
+| 👨‍💻 **开发文档** | **[DEVELOPMENT.md](DEVELOPMENT.md)** | **开发环境搭建指南** |
+| 🔧 **工具使用** | [tools/](#🔧-实用工具) | 密钥生成、服务测试等工具 |
+| 💡 **集成示例** | **[examples/integration_examples.py](examples/integration_examples.py)** | **第三方项目集成示例** |
+| 🧪 **测试文档** | [tests/](tests/) | 单元测试和测试配置 |
+
+### 🎯 快速导航
+
+- **🆕 新用户**: 👉 [快速部署指南](QUICKSTART.md)
+- **🔌 集成开发**: 👉 [API文档](docs/API.md) + [集成示例](examples/integration_examples.py)
+- **🚀 生产部署**: 👉 [部署指南](docs/DEPLOYMENT.md)
+- **🐛 问题排查**: 👉 [常见问题](#常见问题) + [开发文档](DEVELOPMENT.md)
+
+---
+
 ## 🚀 快速开始
 
 ### 1. 环境准备
@@ -494,4 +517,103 @@ python3 client/download_db.py
    * 使用 `systemctl status fastapi-cleanup.timer` 查看 timer 状态
    * 确认 `cleanup.enable` 是否为 `true`，以及时间格式是否正确
 
+---
+
+## 🔗 重要链接和资源
+
+### 📚 核心文档
+| 文档名称 | 链接 | 用途 |
+|---------|------|------|
+| 🚀 快速部署指南 | **[QUICKSTART.md](QUICKSTART.md)** | 5分钟快速上手 |
+| 📖 API完整文档 | **[docs/API.md](docs/API.md)** | 接口规范和使用 |
+| 🛠️ 部署指南 | **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** | 生产环境部署 |
+| 👨‍💻 开发指南 | **[DEVELOPMENT.md](DEVELOPMENT.md)** | 开发环境搭建 |
+
+### 🔧 实用工具
+| 工具名称 | 文件路径 | 功能说明 |
+|---------|----------|----------|
+| 🔑 密钥生成器 | `tools/generate_secret_key.py` | 生成32位安全密钥 |
+| 🧪 服务测试器 | `tools/test_service.py` | 验证功能完整性 |
+| ⚡ 一键配置 | `tools/quick_setup.py` | 自动化环境设置 |
+| 📦 简化客户端 | `client/image_proxy_simple.py` | 单行代码集成 |
+
+### 💡 示例代码
+| 示例类型 | 文件路径 | 内容说明 |
+|---------|----------|----------|
+| 🌐 Web框架集成 | `examples/integration_examples.py` | Flask/Django集成 |
+| 📱 CLI工具 | `examples/integration_examples.py` | 命令行工具示例 |
+| 🔄 后台任务 | `examples/integration_examples.py` | Celery任务集成 |
+| ⚠️ 错误处理 | `examples/integration_examples.py` | 重试和错误处理 |
+
+---
+
+## 🎯 快速行动指南
+
+### 🔰 初次使用？
+```bash
+# 1. 一键配置和启动
+python tools/quick_setup.py --domain "http://your-domain.com" --username admin
+
+# 2. 测试服务
+python tools/test_service.py --quick
+
+# 3. 查看API文档
+# 浏览器访问: http://your-domain.com/docs
 ```
+
+### 🔌 需要集成到项目？
+```python
+# 复制简化客户端到你的项目
+cp client/image_proxy_simple.py /your/project/
+
+# 在代码中使用
+from image_proxy_simple import setup_image_proxy, upload_image
+setup_image_proxy("http://your-domain.com", "admin", "password")
+url = upload_image("photo.jpg")
+```
+
+### 🚀 生产部署？
+查看 **[部署指南](docs/DEPLOYMENT.md)** 或使用自动安装：
+```bash
+cd scripts && sudo ./install.sh
+```
+
+### 🐛 遇到问题？
+```bash
+# 1. 运行诊断工具
+python tools/test_service.py
+
+# 2. 查看常见问题 (上方)
+
+# 3. 查看日志
+sudo journalctl -u image-proxy -f
+
+# 4. 检查配置
+python -c "import json; json.load(open('config/config.json'))"
+```
+
+---
+
+## 🆘 获取帮助
+
+🐛 **报告问题**: [创建Issue](../../issues/new) | 💬 **讨论交流**: [Discussions](../../discussions) | 🔍 **搜索问题**: [已有Issues](../../issues)
+
+### 📚 学习资源
+- 📘 **API学习**: [API文档](docs/API.md) + [**在线API文档**](http://your-domain.com/docs)
+- 🎯 **实践教程**: [快速部署指南](QUICKSTART.md)
+- 💡 **集成案例**: [集成示例代码](examples/integration_examples.py)
+- 🔧 **开发指南**: [开发环境文档](DEVELOPMENT.md)
+
+---
+
+## 📄 许可证
+
+本项目采用 **MIT License** 开源协议 - 详见 [LICENSE](LICENSE) 文件
+
+---
+
+> 💡 **感谢使用 Image Proxy Project！**
+> 
+> 如果您觉得这个项目有用，请给个 ⭐ **Star**！这对我们非常重要！
+> 
+> **快速开始**: [QUICKSTART.md](QUICKSTART.md) | **API文档**: [docs/API.md](docs/API.md) | **部署指南**: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
