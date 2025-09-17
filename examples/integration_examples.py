@@ -10,38 +10,43 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "client"))
 
 try:
-    from image_proxy_simple import setup_image_proxy, upload_image, SimpleImageProxy
-    SIMPLE_CLIENT_AVAILABLE = True
+    # 在此处添加您的客户端包路径
+    sys.path.insert(0, str(Path(__file__).parent.parent / "image_proxy_client"))
+    from image_proxy_client import quick_upload, ImageProxyClient
+    CLIENT_AVAILABLE = True
 except ImportError:
-    SIMPLE_CLIENT_AVAILABLE = False
-    print("⚠️ 简化客户端不可用，请检查 image_proxy_simple.py")
+    CLIENT_AVAILABLE = False
+    print("⚠️ 客户端不可用，请检查 image_proxy_client 包")
 
 
 def example_basic_usage():
     """基础使用示例"""
     print("=== 基础使用示例 ===")
     
-    if not SIMPLE_CLIENT_AVAILABLE:
+    if not CLIENT_AVAILABLE:
         return
     
-    # 配置服务
-    setup_image_proxy(
-        server_url="http://localhost:8000",
-        username="admin",
-        password="admin123",
-        timeout=30
-    )
+    # 使用环境变量配置（推荐）
+    import os
+    os.environ['IMAGE_PROXY_URL'] = "http://localhost:8000"
+    os.environ['IMAGE_PROXY_USERNAME'] = "admin"
+    os.environ['IMAGE_PROXY_PASSWORD'] = "admin123"
     
-    # 上传图片
-    test_image = Path(__file__).parent.parent / "example.png"
+    # 上传图片（需要准备测试图片）
+    test_image = Path(__file__).parent.parent / "test_image.png"  # 您需要准备这个文件
     if test_image.exists():
-        url = upload_image(str(test_image))
+        url = quick_upload(
+            os.environ['IMAGE_PROXY_URL'],
+            os.environ['IMAGE_PROXY_USERNAME'], 
+            os.environ['IMAGE_PROXY_PASSWORD'],
+            str(test_image)
+        )
         if url:
             print(f"✅ 上传成功: {url}")
         else:
             print("❌ 上传失败")
     else:
-        print("⚠️ 测试图片不存在")
+        print("⚠️ 测试图片不存在，请准备 test_image.png")
 
 
 def example_batch_upload():

@@ -310,23 +310,26 @@ def get_image_url(file_path: str) -> str:
 # 测试
 # -------------------------------
 if __name__ == "__main__":
-    # 示例本地测试文件
-    test_file = PROJECT_ROOT / "example.png"
-    print("test_file: ", test_file)
-
-    # 原始字典接口
-    info = upload_or_get(test_file)
-    if "error" in info:
-        print(info["error"])
-    else:
-        print("图片信息:")
-        print(f"Status: {info.get('status')}")
-        print(f"URL: {info.get('url')}")
-        print(f"Original Name: {info.get('name')}")
-        print(f"Size: {info.get('width')}x{info.get('height')}")
-        print(f"Access Count: {info.get('access_count')}")
-        print(f"Expire At: {info.get('expire_at')}")
-
-    # 简化 URL 接口
-    url = get_image_url(test_file)
-    print(f"\n✅ 简化接口 URL: {url}")
+    print("请准备您自己的测试图片文件，然后修改以下示例代码:")
+    print("test_file = Path('your_image.png')")
+    print("暂时禁用测试代码，请手动配置图片路径")
+    
+    # 取消注释以下代码并更改图片路径
+    # test_file = Path("your_image.png")
+    # if test_file.exists():
+    #     info = upload_or_get(test_file)
+    #     if "error" in info:
+    #         print(info["error"])
+    #     else:
+    #         print("图片信息:")
+    #         print(f"Status: {info.get('status')}")
+    #         print(f"URL: {info.get('url')}")
+    #         print(f"Original Name: {info.get('name')}")
+    #         print(f"Size: {info.get('width')}x{info.get('height')}")
+    #         print(f"Access Count: {info.get('access_count')}")
+    #         print(f"Expire At: {info.get('expire_at')}")
+    #
+    #     url = get_image_url(test_file)
+    #     print(f"\n✅ 简化接口 URL: {url}")
+    # else:
+    #     print("测试图片不存在，请准备一个图片文件")

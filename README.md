@@ -266,8 +266,7 @@ Image Proxy Project 是一套高性能、轻量化的图片上传与代理系统
 image_proxy_project/
 ├── client/                 # 客户端代码
 │   ├── client.py          # 增强的主客户端
-│   ├── download_db.py     # 数据库下载工具
-│   └── image_proxy_simple.py # 简化版客户端
+│   └── download_db.py     # 数据库下载工具
 ├── image_proxy_client/     # 第三方集成包 (重点)
 │   ├── __init__.py        # 包初始化文件
 │   ├── client.py          # 核心客户端类
@@ -412,7 +411,8 @@ python3 download_db.py
 ```python
 from image_proxy_project.client.client import get_image_url
 
-file_path = "example.png"
+# 使用您自己的图片文件
+file_path = "your_image.png"
 url = get_image_url(file_path)
 
 if url:
@@ -437,7 +437,8 @@ else:
 ```python
 from image_proxy_project.client.client import upload_or_get
 
-info = upload_or_get("example.png")
+# 使用您自己的图片文件
+info = upload_or_get("your_image.png")
 
 if "error" in info:
     print(info["error"])
@@ -502,7 +503,8 @@ sudo systemctl restart fastapi-cleanup.timer
 ```python
 from client.client import upload_or_get
 
-info = upload_or_get("example.png")
+# 使用您自己的图片文件
+info = upload_or_get("your_image.png")
 print("图片信息:")
 print(f"Status: {info.get('status')}")
 print(f"URL: {info.get('url')}")
