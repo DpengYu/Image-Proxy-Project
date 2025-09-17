@@ -16,6 +16,8 @@ try:
     CLIENT_AVAILABLE = True
 except ImportError:
     CLIENT_AVAILABLE = False
+    quick_upload = None
+    ImageProxyClient = None
     print("⚠️ 客户端不可用，请检查 image_proxy_client 包")
 
 
@@ -34,7 +36,7 @@ def example_basic_usage():
     
     # 上传图片（需要准备测试图片）
     test_image = Path(__file__).parent.parent / "test_image.png"  # 您需要准备这个文件
-    if test_image.exists():
+    if test_image.exists() and quick_upload is not None:
         url = quick_upload(
             os.environ['IMAGE_PROXY_URL'],
             os.environ['IMAGE_PROXY_USERNAME'], 
@@ -46,17 +48,18 @@ def example_basic_usage():
         else:
             print("❌ 上传失败")
     else:
-        print("⚠️ 测试图片不存在，请准备 test_image.png")
+        print("⚠️ 测试图片不存在或客户端不可用")
 
 
 def example_batch_upload():
     """批量上传示例"""
     print("\n=== 批量上传示例 ===")
     
-    if not SIMPLE_CLIENT_AVAILABLE:
+    if not CLIENT_AVAILABLE:
         return
     
-    with SimpleImageProxy("http://localhost:8000", "admin", "admin123") as client:
+    # 使用新的客户端类
+    with ImageProxyClient("http://localhost:8000", "admin", "admin123") as client:
         # 模拟批量上传
         image_files = ["img1.jpg", "img2.png", "img3.gif"]
         
@@ -77,7 +80,7 @@ def example_web_framework():
     # Flask示例
     flask_code = '''
 from flask import Flask, request, jsonify
-from image_proxy_simple import setup_image_proxy, upload_image
+from image_proxy_client import quick_upload, ImageProxyClient
 
 app = Flask(__name__)
 
@@ -122,7 +125,7 @@ if __name__ == '__main__':
 # Django views.py
 from django.http import JsonResponse
 from django.views import View
-from image_proxy_simple import setup_image_proxy, upload_image
+from image_proxy_client import quick_upload, ImageProxyClient
 
 # 在settings.py或__init__.py中配置
 setup_image_proxy("http://localhost:8000", "admin", "admin123")
@@ -167,7 +170,7 @@ def example_cli_tool():
 import sys
 import argparse
 from pathlib import Path
-from image_proxy_simple import setup_image_proxy, upload_image
+from image_proxy_client import quick_upload, ImageProxyClient
 
 def main():
     parser = argparse.ArgumentParser(description='图片上传工具')
@@ -214,7 +217,7 @@ def example_background_task():
     celery_task = '''
 # Celery任务示例
 from celery import Celery
-from image_proxy_simple import setup_image_proxy, upload_image
+from image_proxy_client import quick_upload, ImageProxyClient
 
 app = Celery('image_processor')
 

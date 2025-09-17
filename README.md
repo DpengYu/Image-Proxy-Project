@@ -74,7 +74,7 @@ source venv/bin/activate  # Linux/Mac
 # 或 venv\Scripts\activate  # Windows
 
 # 安装依赖
-pip install -r requirements-prod.txt
+pip install -r requirements.txt
 ```
 
 ### 2. 配置服务
