@@ -1,6 +1,136 @@
-# Image Proxy Project
+# Image Proxy Project v2.0
 
-> 高性能图片上传与代理服务，支持重复去重、自动过期、客户端缓存及安全访问管理。
+> 高性能、安全、易用的图片上传与代理服务 - 完全重构版本
+
+[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+## ✨ 新版本亮点
+
+### 🔒 安全增强
+- **加密密钥管理**: 不再硬编码，支持环境变量配置
+- **文件类型验证**: 严格的文件头检测，防止恶意文件
+- **输入验证**: 全面的参数验证和SQL注入防护
+- **速率限制**: 内置请求频率限制，防止滥用
+- **安全日志**: 详细的安全事件记录
+
+### 🏗️ 架构优化
+- **模块化设计**: 清晰的代码分层和职责分离
+- **异常处理**: 完善的错误处理和用户友好提示
+- **日志系统**: 结构化日志，支持轮转和级别控制
+- **配置管理**: 支持JSON、环境变量、.env文件
+- **数据库优化**: 连接池、索引优化、统计信息
+
+### 🚀 功能增强
+- **客户端重构**: 支持重试、连接池、本地缓存
+- **批量操作**: 支持批量上传和管理
+- **健康检查**: 内置监控端点
+- **系统统计**: 丰富的使用统计信息
+- **API文档**: 完整的OpenAPI文档
+
+### 🧪 质量保证
+- **单元测试**: 覆盖核心功能的测试套件
+- **代码规范**: Black、flake8、mypy代码质量工具
+- **类型提示**: 完整的类型注解
+- **依赖管理**: 版本锁定，安全性扫描
+
+---
+
+## 🚀 快速开始
+
+### 1. 环境准备
+```bash
+# 克隆项目
+git clone <repo_url>
+cd image_proxy_project
+
+# 创建虚拟环境
+python3 -m venv venv
+source venv/bin/activate  # Linux/Mac
+# 或 venv\Scripts\activate  # Windows
+
+# 安装依赖
+pip install -r requirements-prod.txt
+```
+
+### 2. 配置服务
+```bash
+# 复制配置模板
+cp config/config.template.json config/config.json
+cp .env.example .env
+
+# 编辑配置文件
+vim config/config.json
+```
+
+**必要配置项：**
+- `server.domain`: 你的域名或IP
+- `security.secret_key`: **必须**设置为随机32位字符串
+- `users`: 配置用户名和密码
+
+### 3. 启动服务
+```bash
+# 开发环境
+cd server
+python -m uvicorn server:app --reload --host 0.0.0.0 --port 8000
+
+# 生产环境（Linux）
+cd scripts
+sudo ./install.sh
+```
+
+### 4. 测试使用
+```bash
+# 测试客户端
+cd client
+python client.py
+
+# 测试API
+curl http://localhost:8000/health
+```
+
+## 🔧 实用工具
+
+### 🔑 密钥生成器
+```bash
+# 生成并自动配置密钥
+python tools/generate_secret_key.py --config config/config.json --username admin --password
+
+# 只生成密钥
+python tools/generate_secret_key.py
+
+# 生成环境变量格式
+python tools/generate_secret_key.py --env
+```
+
+### 🧪 服务测试器
+```bash
+# 完整测试
+python tools/test_service.py
+
+# 快速测试（健康检查+认证）
+python tools/test_service.py --quick
+
+# 指定配置文件
+python tools/test_service.py --config /path/to/config.json
+```
+
+### 📦 第三方集成
+```python
+# 单行代码上传图片
+from client.image_proxy_simple import setup_image_proxy, upload_image
+
+setup_image_proxy("http://your-domain.com", "admin", "password")
+url = upload_image("/path/to/image.jpg")
+print(f"图片URL: {url}")
+```
+
+### 📄 集成示例
+```bash
+# 查看各种集成示例
+python examples/integration_examples.py
+```
 
 ---
 
@@ -72,25 +202,44 @@ Image Proxy Project 是一套高性能、轻量化的图片上传与代理系统
 
 ---
 
-## 文件结构
+## 📁 项目结构
 
-```text
+```
 image_proxy_project/
-├─ config/
-│  └─ config.json           # 全局配置文件
-├─ server/
-│  ├─ server.py             # FastAPI 服务
-│  ├─ cleanup.py            # 自动清理脚本
-│  ├─ images.db             # SQLite 数据库（首次运行自动生成）
-│  └─ uploads/              # 上传图片存储目录
-├─ client/
-│  ├─ client.py             # 图片上传客户端
-│  └─ download_db.py        # 下载服务器数据库
-├─ scripts/
-│  ├─ install.sh            # 一键安装脚本
-│  ├─ reset.sh              # 重置数据库和上传目录
-│  └─ uninstall.sh          # 服务器一键卸载脚本
-└─ README.md
+├── client/                 # 客户端代码
+│   ├── client.py          # 增强的主客户端
+│   └── download_db.py     # 数据库下载工具
+├── server/                # 服务端代码
+│   ├── server.py          # FastAPI 主服务
+│   ├── database.py        # 数据库管理器
+│   ├── security_utils.py  # 安全工具
+│   ├── config_validator.py # 配置验证器
+│   ├── config_loader.py   # 配置加载器
+│   ├── logger_config.py   # 日志配置
+│   └── cleanup.py         # 清理脚本
+├── config/                # 配置文件
+│   ├── config.template.json # 配置模板
+│   └── config.json        # 实际配置 (已忽略)
+├── tests/                 # 测试代码
+│   ├── test_database.py   # 数据库测试
+│   ├── test_security.py   # 安全测试
+│   ├── conftest.py        # 测试配置
+│   └── test_runner.py     # 测试运行器
+├── docs/                  # 文档
+│   ├── API.md             # API文档
+│   └── DEPLOYMENT.md      # 部署指南
+├── scripts/               # 部署脚本
+│   ├── install.sh         # 一键安装
+│   ├── reset.sh           # 重置数据
+│   └── uninstall.sh       # 卸载服务
+├── .env.example           # 环境变量模板
+├── .gitignore             # Git忽略文件
+├── requirements.txt       # 全部依赖
+├── requirements-prod.txt  # 生产依赖
+├── requirements-dev.txt   # 开发依赖
+├── pytest.ini            # 测试配置
+├── DEVELOPMENT.md         # 开发指南
+└── README.md              # 项目说明
 ```
 
 ---
