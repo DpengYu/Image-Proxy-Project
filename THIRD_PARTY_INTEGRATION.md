@@ -1,388 +1,372 @@
-# 第三方项目集成指南
+# 第三方集成指南
 
-本指南详细说明如何通过Git命令精准获取Image Proxy Client，并集成到您的项目中。
+Image Proxy Project 统一客户端集成指南，适用于各种第三方项目。
 
-## 🎯 设计理念
+## 🚀 推荐集成方式
 
-- ✅ **无明文信息泄露**: 配置通过环境变量或配置文件管理
-- ✅ **精准获取**: 只获取需要的客户端代码，不下载整个项目
-- ✅ **便捷集成**: 支持多种集成方式，适应不同项目需求
-- ✅ **标准化**: 遵循Python包管理最佳实践
+### 方式1: 直接复制文件（推荐）
 
-## 🚀 集成方式
+最简单直接的集成方式：
 
-### 方式1: Git Submodule + Sparse Checkout (推荐)
-
-此方式最适合需要版本控制和更新管理的项目。
-
-#### 步骤1: 添加子模块
 ```bash
-# 在你的项目根目录执行
-git submodule add https://github.com/DpengYu/Image-Proxy-Project.git third_party/image_proxy
+# 下载客户端文件
+wget https://raw.githubusercontent.com/DpengYu/Image-Proxy-Project/main/client/client.py
+
+# 或使用curl
+curl -O https://raw.githubusercontent.com/DpengYu/Image-Proxy-Project/main/client/client.py
+
+# 复制到您的项目中
+cp client.py your_project/utils/
 ```
 
-#### 步骤2: 配置稀疏检出
-```bash
-cd third_party/image_proxy
-
-# 启用稀疏检出
-git config core.sparseCheckout true
-
-# 只检出客户端包
-echo "image_proxy_client/*" > .git/info/sparse-checkout
-
-# 重新检出，只获取客户端代码
-git read-tree -m -u HEAD
-```
-
-#### 步骤3: 在项目中使用
+使用示例：
 ```python
-# 在你的Python代码中
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'third_party/image_proxy'))
+from utils.client import quick_upload
 
-from image_proxy_client import quick_upload
-
-# 使用环境变量配置（推荐）
+# 单行代码上传图片
 url = quick_upload(
-    server_url=os.getenv('IMAGE_PROXY_URL'),
-    username=os.getenv('IMAGE_PROXY_USERNAME'), 
-    password=os.getenv('IMAGE_PROXY_PASSWORD'),
-    image_path="path/to/image.jpg"
+    "http://your-server.com:8000",
+    "username", "password", 
+    "image.jpg"
 )
+print(f"图片URL: {url}")
 ```
 
-#### 步骤4: 更新子模块
-```bash
-# 更新到最新版本
-cd third_party/image_proxy
-git pull origin main
+### 方式2: Git Submodule
 
-# 或者在主项目中更新所有子模块
-git submodule update --remote
+适合需要跟随更新的项目：
+
+```bash
+# 添加为子模块
+git submodule add https://github.com/DpengYu/Image-Proxy-Project.git image_proxy
+
+# 设置sparse-checkout只获取客户端
+cd image_proxy
+git config core.sparseCheckout true
+echo "client/*" > .git/info/sparse-checkout
+git read-tree -m -u HEAD
+
+# 在您的项目中使用
+import sys
+sys.path.append('image_proxy')
+from client.client import quick_upload
+
+url = quick_upload("http://server.com", "user", "pass", "image.jpg")
 ```
 
-### 方式2: 直接克隆子目录
+### 方式3: 项目内置
 
-适合不需要版本管理的一次性集成。
+将客户端作为项目的一部分：
 
 ```bash
-# 克隆整个仓库
+# 克隆完整项目
 git clone https://github.com/DpengYu/Image-Proxy-Project.git temp_image_proxy
 
-# 只复制客户端包到你的项目
-cp -r temp_image_proxy/image_proxy_client your_project/libs/
+# 复制客户端到您的项目
+cp -r temp_image_proxy/client your_project/libs/image_proxy_client
 
-# 清理临时目录
+# 清理临时文件
 rm -rf temp_image_proxy
 ```
 
-使用方式：
-```python
-# 添加到Python路径
-import sys
-sys.path.append('libs')
-
-from image_proxy_client import ImageProxyClient, quick_upload
-```
-
-### 方式3: Git Worktree (高级用法)
-
-适合需要同时维护多个版本的场景。
-
-```bash
-# 克隆仓库（如果尚未克隆）
-git clone https://github.com/DpengYu/Image-Proxy-Project.git image_proxy_source
-
-cd image_proxy_source
-
-# 创建工作树，只包含客户端
-git worktree add ../my_project/image_proxy_client main
-```
-
-### 方式4: Pip安装 (开发中)
-
-```bash
-# 直接从Git仓库安装
-pip install git+https://github.com/DpengYu/Image-Proxy-Project.git#subdirectory=image_proxy_client
-
-# 使用
-from image_proxy_client import quick_upload
-```
-
-## 🔧 配置管理
-
-### 环境变量配置 (推荐)
-
-在您的项目中设置环境变量：
-
-```bash
-# .env 文件或系统环境变量
-export IMAGE_PROXY_URL="http://your-server.com:8000"
-export IMAGE_PROXY_USERNAME="your_username"
-export IMAGE_PROXY_PASSWORD="your_password"
-export IMAGE_PROXY_TIMEOUT="30"
-export IMAGE_PROXY_VERIFY_SSL="true"
-```
-
-Python代码：
-```python
-import os
-from image_proxy_client import ImageProxyConfig
-
-# 自动从环境变量加载配置
-config = ImageProxyConfig()
-client = config.get_client()
-
-# 直接使用
-url = client.get_image_url("image.jpg")
-```
-
-### 配置文件方式
-
-```python
-from image_proxy_client.config import create_config_template, ImageProxyConfig
-
-# 创建配置模板
-create_config_template("image_proxy_config.json")
-
-# 编辑配置文件后使用
-config = ImageProxyConfig("image_proxy_config.json")
-client = config.get_client()
-```
-
-## 📦 项目结构建议
-
-### 小型项目结构
-```
-your_project/
-├── main.py
-├── requirements.txt
-├── .env                     # 环境变量配置
-└── libs/
-    └── image_proxy_client/  # 复制的客户端包
-```
-
-### 大型项目结构
+项目结构：
 ```
 your_project/
 ├── src/
-│   └── main.py
-├── third_party/             # 第三方依赖
-│   └── image_proxy/         # Git submodule
-│       └── image_proxy_client/
-├── config/
-│   └── image_proxy.json     # 配置文件
-├── requirements.txt
-└── .gitmodules              # Git子模块配置
+├── libs/
+│   └── image_proxy_client/
+│       ├── client.py
+│       └── README.md
+└── requirements.txt
 ```
 
-## 🎯 最佳实践
+使用示例：
+```python
+from libs.image_proxy_client.client import ImageProxyClient, quick_upload
 
-### 1. 环境变量管理
+# 方式1: 配置文件
+with ImageProxyClient() as client:
+    url = client.get_image_url("image.jpg")
+
+# 方式2: 直接传参
+url = quick_upload("http://server.com", "user", "pass", "image.jpg")
+```
+
+## 📋 配置管理
+
+### 配置文件方式
+
+创建配置文件 `config/image_proxy.json`：
+
+```json
+{
+  "server": {
+    "domain": "http://your-server.com:8000"
+  },
+  "users": [
+    {
+      "username": "your_username",
+      "password": "your_password"
+    }
+  ]
+}
+```
+
+使用配置：
+```python
+from client import ImageProxyClient
+
+# 指定配置文件
+client = ImageProxyClient(config_file="config/image_proxy.json")
+url = client.get_image_url("image.jpg")
+client.close()
+```
+
+### 环境变量方式
 
 ```python
-# utils/image_config.py
 import os
-from image_proxy_client import ImageProxyConfig
+from client import ImageProxyClient
 
-def get_image_client():
-    """获取配置好的图片客户端"""
-    config = ImageProxyConfig()
-    
-    # 验证必要的环境变量
-    required_vars = ['IMAGE_PROXY_URL', 'IMAGE_PROXY_USERNAME', 'IMAGE_PROXY_PASSWORD']
-    missing_vars = [var for var in required_vars if not os.getenv(var)]
-    
-    if missing_vars:
-        raise ValueError(f"缺少环境变量: {missing_vars}")
-    
-    return config.get_client()
+# 设置环境变量
+os.environ['IMAGE_PROXY_URL'] = 'http://your-server.com:8000'
+os.environ['IMAGE_PROXY_USERNAME'] = 'username'
+os.environ['IMAGE_PROXY_PASSWORD'] = 'password'
 
-# 在其他文件中使用
-from utils.image_config import get_image_client
-
-def upload_user_avatar(image_path):
-    client = get_image_client()
-    return client.get_image_url(image_path)
+# 通过参数传递
+client = ImageProxyClient(
+    server_url=os.getenv('IMAGE_PROXY_URL'),
+    username=os.getenv('IMAGE_PROXY_USERNAME'),
+    password=os.getenv('IMAGE_PROXY_PASSWORD')
+)
 ```
 
-### 2. 错误处理
+## 🎯 各种框架集成示例
+
+### Flask集成
 
 ```python
-from image_proxy_client import quick_upload
-import logging
-
-def safe_upload_image(image_path):
-    """安全的图片上传，带完整错误处理"""
-    try:
-        url = quick_upload(
-            server_url=os.getenv('IMAGE_PROXY_URL'),
-            username=os.getenv('IMAGE_PROXY_USERNAME'),
-            password=os.getenv('IMAGE_PROXY_PASSWORD'),
-            image_path=image_path
-        )
-        logging.info(f"图片上传成功: {image_path} -> {url}")
-        return url
-    
-    except FileNotFoundError:
-        logging.error(f"文件不存在: {image_path}")
-        return None
-    except ValueError as e:
-        logging.error(f"上传参数错误: {e}")
-        return None
-    except Exception as e:
-        logging.error(f"上传失败: {e}")
-        return None
-```
-
-### 3. 异步集成
-
-```python
-import asyncio
-import concurrent.futures
-from image_proxy_client import ImageProxyClient
-
-class AsyncImageProxy:
-    def __init__(self):
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
-        self.client = None
-    
-    async def upload_image(self, image_path):
-        """异步上传图片"""
-        if not self.client:
-            from utils.image_config import get_image_client
-            self.client = get_image_client()
-        
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(
-            self.executor, 
-            self.client.get_image_url, 
-            image_path
-        )
-
-# 使用示例
-async def main():
-    proxy = AsyncImageProxy()
-    url = await proxy.upload_image("image.jpg")
-    print(f"异步上传完成: {url}")
-```
-
-## 🔄 版本管理
-
-### 锁定版本
-
-```bash
-# 在子模块中锁定特定版本
-cd third_party/image_proxy
-git checkout v1.0.0  # 或特定commit hash
-
-# 提交锁定的版本
-cd ../../
-git add third_party/image_proxy
-git commit -m "锁定image_proxy版本到v1.0.0"
-```
-
-### 自动更新检查
-
-```python
-# scripts/check_updates.py
-import subprocess
+from flask import Flask, request, jsonify, current_app
+from client import quick_upload
+import tempfile
 import os
 
-def check_image_proxy_updates():
-    """检查image_proxy客户端是否有更新"""
-    try:
-        os.chdir('third_party/image_proxy')
-        
-        # 获取当前版本
-        current = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode().strip()
-        
-        # 获取远程最新版本
-        subprocess.run(['git', 'fetch', 'origin'], check=True)
-        latest = subprocess.check_output(['git', 'rev-parse', 'origin/main']).decode().strip()
-        
-        if current != latest:
-            print("🔄 发现image_proxy客户端更新")
-            print(f"当前版本: {current[:8]}")
-            print(f"最新版本: {latest[:8]}")
-            print("运行 'git submodule update --remote' 更新")
-        else:
-            print("✅ image_proxy客户端已是最新版本")
-            
-    except Exception as e:
-        print(f"❌ 检查更新失败: {e}")
-    finally:
-        os.chdir('../../')
+app = Flask(__name__)
 
-if __name__ == "__main__":
-    check_image_proxy_updates()
-```
+# 配置
+app.config['IMAGE_PROXY_URL'] = 'http://your-server.com:8000'
+app.config['IMAGE_PROXY_USER'] = 'api_user'
+app.config['IMAGE_PROXY_PASS'] = 'api_password'
 
-## 🧪 测试集成
-
-```python
-# tests/test_image_integration.py
-import unittest
-import os
-from unittest.mock import patch, MagicMock
-
-class TestImageProxyIntegration(unittest.TestCase):
+@app.route('/upload', methods=['POST'])
+def upload_image():
+    if 'image' not in request.files:
+        return jsonify({'error': '未找到图片文件'}), 400
     
-    @patch.dict(os.environ, {
-        'IMAGE_PROXY_URL': 'http://test-server.com',
-        'IMAGE_PROXY_USERNAME': 'test_user',
-        'IMAGE_PROXY_PASSWORD': 'test_pass'
-    })
-    def test_config_from_env(self):
-        """测试从环境变量加载配置"""
-        from image_proxy_client import ImageProxyConfig
-        
-        config = ImageProxyConfig()
-        self.assertEqual(config.get('server_url'), 'http://test-server.com')
-        self.assertEqual(config.get('username'), 'test_user')
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({'error': '未选择文件'}), 400
     
-    @patch('image_proxy_client.client.requests.Session')
-    def test_upload_success(self, mock_session):
-        """测试上传成功场景"""
-        # Mock成功响应
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {'url': 'http://test.com/image.jpg'}
-        
-        mock_session.return_value.post.return_value = mock_response
-        
-        from image_proxy_client import quick_upload
-        
-        # 创建测试图片文件
-        with open('test_image.jpg', 'w') as f:
-            f.write('test')
+    # 保存临时文件
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp:
+        file.save(tmp.name)
         
         try:
-            url = quick_upload('http://test.com', 'user', 'pass', 'test_image.jpg')
-            self.assertEqual(url, 'http://test.com/image.jpg')
+            url = quick_upload(
+                current_app.config['IMAGE_PROXY_URL'],
+                current_app.config['IMAGE_PROXY_USER'],
+                current_app.config['IMAGE_PROXY_PASS'],
+                tmp.name
+            )
+            return jsonify({'url': url})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
         finally:
-            os.unlink('test_image.jpg')
-
-if __name__ == '__main__':
-    unittest.main()
+            os.unlink(tmp.name)
 ```
 
-## 📚 常见问题
+### Django集成
 
-### Q: 如何处理子模块更新？
-A: 使用 `git submodule update --remote` 更新到最新版本，或使用 `git checkout <version>` 切换到特定版本。
+```python
+# views.py
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.core.files.storage import default_storage
+from client import quick_upload
+import tempfile
+import os
 
-### Q: 能否只下载特定文件？
-A: 可以使用sparse-checkout功能，如示例中所示，只检出 `image_proxy_client` 目录。
+@csrf_exempt
+def upload_image(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': '仅支持POST请求'}, status=405)
+    
+    if 'image' not in request.FILES:
+        return JsonResponse({'error': '未找到图片文件'}, status=400)
+    
+    image_file = request.FILES['image']
+    
+    # 保存临时文件
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        for chunk in image_file.chunks():
+            tmp.write(chunk)
+        tmp.flush()
+        
+        try:
+            url = quick_upload(
+                "http://your-server.com:8000",
+                "api_user", "api_password",
+                tmp.name
+            )
+            return JsonResponse({'url': url})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        finally:
+            os.unlink(tmp.name)
+```
 
-### Q: 如何避免路径冲突？
-A: 建议将客户端代码放在专门的目录（如 `third_party/`、`libs/`），并通过sys.path管理导入路径。
+### FastAPI集成
 
-### Q: 是否支持离线使用？
-A: 是的，一旦获取了客户端代码，就可以离线使用，只需要在运行时连接到图片代理服务器。
+```python
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from client import quick_upload
+import tempfile
+import os
 
----
+app = FastAPI()
 
-💡 **提示**: 推荐使用Git Submodule + 环境变量的方式，这样既能保持代码的版本管理，又能避免敏感信息泄露。
+@app.post("/upload")
+async def upload_image(file: UploadFile = File(...)):
+    # 检查文件类型
+    if not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="文件必须是图片类型")
+    
+    # 保存临时文件
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        content = await file.read()
+        tmp.write(content)
+        tmp.flush()
+        
+        try:
+            url = quick_upload(
+                "http://your-server.com:8000",
+                "api_user", "api_password",
+                tmp.name
+            )
+            return {"url": url, "filename": file.filename}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+        finally:
+            os.unlink(tmp.name)
+```
+
+## 🛠️ 高级使用
+
+### 批量上传
+
+```python
+from client import ImageProxyClient
+import os
+
+def batch_upload(image_dir, server_url, username, password):
+    results = []
+    
+    with ImageProxyClient(server_url, username, password) as client:
+        for filename in os.listdir(image_dir):
+            if filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif')):
+                file_path = os.path.join(image_dir, filename)
+                try:
+                    result = client.upload_image(file_path)
+                    results.append({
+                        'filename': filename,
+                        'url': result['url'],
+                        'status': 'success'
+                    })
+                except Exception as e:
+                    results.append({
+                        'filename': filename,
+                        'error': str(e),
+                        'status': 'failed'
+                    })
+    
+    return results
+
+# 使用
+results = batch_upload(
+    "/path/to/images",
+    "http://your-server.com:8000",
+    "username", "password"
+)
+
+for result in results:
+    if result['status'] == 'success':
+        print(f"✅ {result['filename']}: {result['url']}")
+    else:
+        print(f"❌ {result['filename']}: {result['error']}")
+```
+
+### 错误处理
+
+```python
+from client import ImageProxyClient
+import requests
+
+def safe_upload(image_path, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            with ImageProxyClient() as client:
+                if not client.is_healthy():
+                    raise Exception("服务器不可用")
+                
+                return client.get_image_url(image_path)
+                
+        except requests.RequestException as e:
+            print(f"网络错误 (尝试 {attempt + 1}/{max_retries}): {e}")
+            if attempt == max_retries - 1:
+                raise
+        except Exception as e:
+            print(f"上传失败: {e}")
+            raise
+
+# 使用
+try:
+    url = safe_upload("image.jpg")
+    print(f"上传成功: {url}")
+except Exception as e:
+    print(f"最终失败: {e}")
+```
+
+## 📝 注意事项
+
+1. **依赖要求**: 确保安装了 `requests` 库
+2. **配置安全**: 不要在代码中硬编码密码，使用环境变量或配置文件
+3. **错误处理**: 始终进行适当的错误处理
+4. **资源清理**: 使用上下文管理器或手动调用 `close()` 方法
+5. **版本兼容**: 客户端向后兼容，支持旧版本接口
+
+## 🔧 故障排除
+
+### 常见问题
+
+1. **导入错误**: 确保 `client.py` 文件在正确的路径
+2. **网络错误**: 检查服务器地址和网络连接
+3. **认证失败**: 验证用户名和密码是否正确
+4. **文件不存在**: 确保图片文件路径正确
+5. **权限问题**: 确保有读取图片文件的权限
+
+### 调试技巧
+
+```python
+import logging
+from client import ImageProxyClient
+
+# 启用详细日志
+logging.basicConfig(level=logging.DEBUG)
+
+# 测试连接
+with ImageProxyClient() as client:
+    if client.is_healthy():
+        print("✅ 服务器连接正常")
+    else:
+        print("❌ 服务器连接失败")
+```
