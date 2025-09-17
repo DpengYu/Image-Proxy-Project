@@ -140,39 +140,49 @@ python tools/test_service.py --config /path/to/config.json
 ```
 
 ### 📦 第三方集成
-```python
-# 单行代码上传图片
-from client.image_proxy_simple import setup_image_proxy, upload_image
 
-setup_image_proxy("http://your-domain.com", "admin", "password")
-url = upload_image("/path/to/image.jpg")
+**方式1: Git Submodule (推荐)**
+```bash
+# 添加为子模块并只获取客户端包
+git submodule add https://github.com/DpengYu/Image-Proxy-Project.git image_proxy
+cd image_proxy
+git sparse-checkout init --cone
+git sparse-checkout set image_proxy_client
+
+# 在你的项目中使用
+import sys
+sys.path.append('image_proxy')
+from image_proxy_client import quick_upload
+
+# 单行代码上传图片
+url = quick_upload("http://your-domain.com", "admin", "password", "image.jpg")
 print(f"图片URL: {url}")
 ```
 
-### 🚀 第三方快速获取工具
-
-**仅需转URL工具，无需下载整个工程？**
-
-**Windows PowerShell 一行命令获取：**
-```powershell
-iex (irm 'https://raw.githubusercontent.com/DpengYu/Image-Proxy-Project/main/dist/quick_get.ps1') -Mini
-```
-
-**Linux/macOS 一行命令获取：**
+**方式2: 直接复制包**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/DpengYu/Image-Proxy-Project/main/dist/quick_get.sh | bash -s -- --mini
+# 克隆仓库
+git clone https://github.com/DpengYu/Image-Proxy-Project.git
+cd Image-Proxy-Project
+
+# 复制客户端包到你的项目
+cp -r image_proxy_client /path/to/your/project/
+
+# 使用
+from image_proxy_client import ImageProxyClient
+with ImageProxyClient("http://your-domain.com", "admin", "password") as client:
+    url = client.get_image_url("image.jpg")
 ```
 
-**直接下载单文件：**
+**方式3: Pip安装**
 ```bash
-# 极简版本 (<5KB)
-wget https://raw.githubusercontent.com/DpengYu/Image-Proxy-Project/main/dist/image_proxy_mini.py
+# 直接从仓库安装
+pip install git+https://github.com/DpengYu/Image-Proxy-Project.git#subdirectory=image_proxy_client
 
-# 完整版本 (<15KB)
-wget https://raw.githubusercontent.com/DpengYu/Image-Proxy-Project/main/dist/image_proxy_client.py
+# 使用
+from image_proxy_client import quick_upload
+url = quick_upload("http://your-domain.com", "admin", "password", "image.jpg")
 ```
-
-**详细获取指南：** [📖 第三方快速获取指南](dist/README.md)
 
 ### 📄 集成示例
 ```bash
@@ -256,7 +266,15 @@ Image Proxy Project 是一套高性能、轻量化的图片上传与代理系统
 image_proxy_project/
 ├── client/                 # 客户端代码
 │   ├── client.py          # 增强的主客户端
-│   └── download_db.py     # 数据库下载工具
+│   ├── download_db.py     # 数据库下载工具
+│   └── image_proxy_simple.py # 简化版客户端
+├── image_proxy_client/     # 第三方集成包 (重点)
+│   ├── __init__.py        # 包初始化文件
+│   ├── client.py          # 核心客户端类
+│   ├── config.py          # 配置管理
+│   ├── setup.py           # 安装脚本
+│   ├── requirements.txt   # 依赖管理
+│   └── README.md          # 使用文档
 ├── server/                # 服务端代码
 │   ├── server.py          # FastAPI 主服务
 │   ├── database.py        # 数据库管理器
@@ -269,24 +287,11 @@ image_proxy_project/
 │   ├── config.template.json # 配置模板
 │   └── config.json        # 实际配置 (已忽略)
 ├── tests/                 # 测试代码
-│   ├── test_database.py   # 数据库测试
-│   ├── test_security.py   # 安全测试
-│   ├── conftest.py        # 测试配置
-│   └── test_runner.py     # 测试运行器
 ├── docs/                  # 文档
-│   ├── API.md             # API文档
-│   └── DEPLOYMENT.md      # 部署指南
 ├── scripts/               # 部署脚本
-│   ├── install.sh         # 一键安装
-│   ├── reset.sh           # 重置数据
-│   └── uninstall.sh       # 卸载服务
-├── .env.example           # 环境变量模板
-├── .gitignore             # Git忽略文件
+├── tools/                 # 实用工具
+├── examples/              # 集成示例
 ├── requirements.txt       # 全部依赖
-├── requirements-prod.txt  # 生产依赖
-├── requirements-dev.txt   # 开发依赖
-├── pytest.ini            # 测试配置
-├── DEVELOPMENT.md         # 开发指南
 └── README.md              # 项目说明
 ```
 
@@ -628,7 +633,7 @@ python -c "import json; json.load(open('config/config.json'))"
 - 🎯 **实践教程**: [快速部署指南](QUICKSTART.md)
 - 💡 **集成案例**: [集成示例代码](examples/integration_examples.py)
 - 🔧 **开发指南**: [开发环境文档](DEVELOPMENT.md)
-- 🚀 **第三方获取**: [第三方快速获取指南](dist/README.md)
+- 📦 **客户端集成**: [image_proxy_client 包文档](image_proxy_client/README.md)
 
 ---
 
