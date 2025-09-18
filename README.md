@@ -63,7 +63,7 @@ Image Proxy Project 是一个专为现代应用设计的高性能图片管理解
 - **chatGPT**：可以通过提供图像文件的 URL 或提供图像作为 Base64 编码的数据 URL，将图像作为生成请求的输入。
 - **即梦AI（特别是即梦4.0）**：仅支持URL方式上传图片，本项目完美解决本地图片转URL需求；
 - **其它AI工具**：大多数AI工具都支持图片以URL形式提供
-- **即梦4.0 comfyUI节点：**https://github.com/DpengYu/ComfyUI_Jimeng4-4.0-.git
+- **即梦4.0 comfyUI节点：**https://github.com/DpengYu/ComfyUI_Jimeng4.git
 
 **使用流程**：
 ```

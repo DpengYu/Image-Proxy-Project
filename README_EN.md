@@ -64,7 +64,7 @@ Image Proxy Project is a high-performance image management solution designed for
 - **ChatGPT API**: You can provide the URL of an image file or provide the image as a Base64 encoded data URL as input to the generation request.
 - **Jimeng AI (especially Jimeng 4.0)**: Only supports URL-based image uploads, and this project perfectly solves the local image to URL conversion requirement
 - **Other AI Tools**: Most AI tools support images in URL format
-- **Jimeng 4.0 ComfyUI Node**: https://github.com/DpengYu/ComfyUI_Jimeng4-4.0-.git
+- **Jimeng 4.0 ComfyUI Node**: https://github.com/DpengYu/ComfyUI_Jimeng4.git
 
 **Usage Flow**:
 ```
