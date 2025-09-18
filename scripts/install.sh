@@ -212,7 +212,8 @@ echo "✅ systemd 服务配置完成"
 echo "[STEP 7] 配置 Nginx 反向代理"
 
 BT_CONF="/www/server/panel/vhost/nginx/${DOMAIN}.conf"
-NGINX_CONF="/etc/nginx/conf.d/image-proxy.conf"
+# 修改NGINX_CONF路径，使用宝塔面板的配置目录
+NGINX_CONF="/www/server/panel/vhost/nginx/image-proxy.conf"
 # 更新API路径，包括新增的/stats和/health等
 LOCS=( "/docs" "/upload" "/get" "/secure_get" "/download_db" "/stats" "/health" )
 
@@ -304,18 +305,12 @@ server {
     listen 80;
     server_name $DOMAIN;
     
-    # 如果存在SSL证书，则重定向HTTP到HTTPS
-    # 注意：Nginx不支持在server块中直接检查文件是否存在
-    # 所以我们假设如果配置了证书就执行重定向
-    # 实际上应该在安装时确保证书存在或使用certbot
-    # return 301 https://$DOMAIN\$request_uri;
-    
     # 基本安全设置
     client_max_body_size 20M;
     
     # 访问日志
-    access_log /var/log/nginx/image-proxy-access.log;
-    error_log /var/log/nginx/image-proxy-error.log;
+    access_log /www/wwwlogs/image-proxy-access.log;
+    error_log /www/wwwlogs/image-proxy-error.log;
 EOF
 
   for L in "${LOCS[@]}"; do
@@ -347,8 +342,8 @@ server {
     client_max_body_size 20M;
     
     # 访问日志
-    access_log /var/log/nginx/image-proxy-access.log;
-    error_log /var/log/nginx/image-proxy-error.log;
+    access_log /www/wwwlogs/image-proxy-access.log;
+    error_log /www/wwwlogs/image-proxy-error.log;
 EOF
 
     # 为HTTPS服务器块添加location配置

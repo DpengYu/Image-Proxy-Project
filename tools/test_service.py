@@ -18,11 +18,18 @@ class ImageProxyTester:
     def __init__(self, config_file: Optional[str] = None):
         self.config_file = config_file or "config/config.json"
         self.config = self._load_config()
-        # 确保端口包含在URL中
+        # 确保端口不包含在URL中，因为我们通过Nginx访问
         domain = self.config['server']['domain'].rstrip('/')
-        port = self.config['server']['port']
-        if ':' not in domain.split('//')[1] and port != 80:
-            self.server_url = f"{domain}:{port}"
+        # 移除端口号（如果存在）
+        if ':' in domain:
+            # 如果是http://domain:port格式，只保留协议和域名
+            if domain.startswith('http'):
+                protocol, rest = domain.split('://', 1)
+                host_part = rest.split(':')[0] if ':' in rest else rest
+                self.server_url = f"{protocol}://{host_part}"
+            else:
+                # 如果是domain:port格式，只保留域名部分
+                self.server_url = domain.split(':')[0]
         else:
             self.server_url = domain
         self.username = self.config['users'][0]['username']
